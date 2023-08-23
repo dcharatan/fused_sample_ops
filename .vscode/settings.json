@@ -10,7 +10,6 @@
         "**/CVS": true,
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
-        "**/build": true,
         "**/venv": true,
     },
     "[python]": {

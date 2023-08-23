@@ -24,8 +24,9 @@ add_library(torchdraw_cuda SHARED
 # See https://github.com/pytorch/pytorch/issues/38122#issuecomment-694203281
 find_library(TORCH_PYTHON_LIBRARY torch_python PATHS "${TORCH_INSTALL_PREFIX}/lib")
 
-# Add a definition that determines the name for PYBIND11_MODULE.
-add_definitions(-DCOMPILED_WITH_CMAKE)
+# Ensure that the name supplied to PYBIND11_MODULE is torchdraw_cuda and that the output library produced by the CMake build is torchdraw_cuda.so
+add_definitions(-DTORCH_EXTENSION_NAME=torchdraw_cuda)
+set_target_properties(torchdraw_cuda PROPERTIES PREFIX "")
 
 target_link_libraries(torchdraw_cuda PUBLIC ${PYTHON_LIBRARIES} ${TORCH_LIBRARIES} ${TORCH_PYTHON_LIBRARY})
 target_include_directories(torchdraw_cuda PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src ${Python_INCLUDE_DIRS} ${TORCH_INCLUDE_DIRS})
