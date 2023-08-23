@@ -1,0 +1,16 @@
+{
+    "cmake.configureOnOpen": true,
+    "C_Cpp.default.includePath": [
+        "venv/lib/python3.10/site-packages/torch/include/torch/csrc/api/include/torch",
+    ],
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/build": true,
+        "**/venv": true,
+    }
+}

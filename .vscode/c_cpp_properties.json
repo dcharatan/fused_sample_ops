@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${default}",
+                // PyTorch headers (from the virtual environment)
+                "${workspaceFolder}/venv/lib/python3.10/site-packages/torch/include",
+                "${workspaceFolder}/venv/lib/python3.10/site-packages/torch/include/torch/csrc/api/include",
+                // Python headers (from apt install python3.10-dev)
+                "/usr/include/python3.10"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
