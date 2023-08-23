@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
-project(torchdraw_cuda LANGUAGES CUDA CXX)
+project(torchdraw_cuda LANGUAGES CXX CUDA)
 
 # Connect the project to Python.
 find_package(Python COMPONENTS Development)
@@ -16,9 +16,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CUDA_STANDARD 17)
 
 # Define the torchdraw_cuda library and link it to Torch and Python.
-add_library(torchdraw_cuda
+add_library(torchdraw_cuda SHARED
 	src/extension.cpp
 )
 set_target_properties(torchdraw_cuda PROPERTIES CUDA_ARCHITECTURES "70;75;86")
-target_link_libraries(torchdraw_cuda PRIVATE ${TORCH_LIBRARIES} ${PYTHON_LIBRARIES})
+target_link_libraries(torchdraw_cuda PRIVATE ${PYTHON_LIBRARIES} ${TORCH_LIBRARIES})
 target_include_directories(torchdraw_cuda PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${Python_INCLUDE_DIRS})
