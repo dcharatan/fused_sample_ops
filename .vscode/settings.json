@@ -12,5 +12,5 @@
         "**/Thumbs.db": true,
         "**/build": true,
         "**/venv": true,
-    }
+    },
 }
