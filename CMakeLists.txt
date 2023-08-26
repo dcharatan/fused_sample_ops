@@ -17,7 +17,8 @@ set(CMAKE_CUDA_STANDARD 17)
 
 # Define the torchdraw_cuda library.
 add_library(torchdraw_cuda SHARED
-	src/extension.cpp
+	src/extension.cu
+	src/points.cu
 )
 
 # This workaround is needed to avoid linking errors (undefined symbols).

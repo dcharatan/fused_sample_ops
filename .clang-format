@@ -1,0 +1,6 @@
+---
+BasedOnStyle: Chromium
+AlignTrailingComments: 'false'
+AlwaysBreakTemplateDeclarations: 'Yes'
+
+...

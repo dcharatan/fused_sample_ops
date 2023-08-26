@@ -7,7 +7,8 @@ setup(
         CUDAExtension(
             "torchdraw_cuda",
             [
-                "src/extension.cpp",
+                "src/extension.cu",
+                "src/points.cu",
             ],
         ),
     ],
