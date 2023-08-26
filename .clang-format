@@ -2,5 +2,6 @@
 BasedOnStyle: Chromium
 AlignTrailingComments: 'false'
 AlwaysBreakTemplateDeclarations: 'Yes'
+ColumnLimit: '88'
 
 ...

@@ -30,4 +30,4 @@ add_definitions(-DTORCH_EXTENSION_NAME=torchdraw_cuda)
 set_target_properties(torchdraw_cuda PROPERTIES PREFIX "")
 
 target_link_libraries(torchdraw_cuda PUBLIC ${PYTHON_LIBRARIES} ${TORCH_LIBRARIES} ${TORCH_PYTHON_LIBRARY})
-target_include_directories(torchdraw_cuda PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src ${Python_INCLUDE_DIRS} ${TORCH_INCLUDE_DIRS})
+target_include_directories(torchdraw_cuda PUBLIC src third_party/glm ${Python_INCLUDE_DIRS} ${TORCH_INCLUDE_DIRS})
