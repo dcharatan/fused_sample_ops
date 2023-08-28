@@ -3,5 +3,6 @@ BasedOnStyle: Chromium
 AlignTrailingComments: 'false'
 AlwaysBreakTemplateDeclarations: 'Yes'
 ColumnLimit: '88'
+PointerAlignment: Right
 
 ...

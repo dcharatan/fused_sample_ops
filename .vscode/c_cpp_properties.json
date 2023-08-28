@@ -4,6 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${default}",
+                "${workspaceFolder}/third_party/glm",
                 // PyTorch headers (from the virtual environment)
                 "${workspaceFolder}/venv/lib/python3.10/site-packages/torch/include",
                 "${workspaceFolder}/venv/lib/python3.10/site-packages/torch/include/torch/csrc/api/include",

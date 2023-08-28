@@ -13,7 +13,12 @@
         "**/venv": true,
     },
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.tabSize": 4,
     },
     "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "files.associations": {
+        "functional": "cpp"
+    }
 }
