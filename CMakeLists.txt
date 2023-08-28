@@ -15,8 +15,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CUDA_STANDARD 17)
 
-# Define the torchdraw_cuda library.
-add_library(torchdraw_cuda SHARED
+# Define the _cuda library.
+add_library(_cuda SHARED
 	src/extension.cu
 	src/points.cu
 	src/lines.cu
@@ -26,9 +26,9 @@ add_library(torchdraw_cuda SHARED
 # See https://github.com/pytorch/pytorch/issues/38122#issuecomment-694203281
 find_library(TORCH_PYTHON_LIBRARY torch_python PATHS "${TORCH_INSTALL_PREFIX}/lib")
 
-# Ensure that the name supplied to PYBIND11_MODULE is torchdraw_cuda and that the output library produced by the CMake build is torchdraw_cuda.so
-add_definitions(-DTORCH_EXTENSION_NAME=torchdraw_cuda)
-set_target_properties(torchdraw_cuda PROPERTIES PREFIX "")
+# Ensure that the name supplied to PYBIND11_MODULE is _cuda and that the output library produced by the CMake build is _cuda.so
+add_definitions(-DTORCH_EXTENSION_NAME=_cuda)
+set_target_properties(_cuda PROPERTIES PREFIX "")
 
-target_link_libraries(torchdraw_cuda PUBLIC ${PYTHON_LIBRARIES} ${TORCH_LIBRARIES} ${TORCH_PYTHON_LIBRARY})
-target_include_directories(torchdraw_cuda PUBLIC src third_party/glm ${Python_INCLUDE_DIRS} ${TORCH_INCLUDE_DIRS})
+target_link_libraries(_cuda PUBLIC ${PYTHON_LIBRARIES} ${TORCH_LIBRARIES} ${TORCH_PYTHON_LIBRARY})
+target_include_directories(_cuda PUBLIC src third_party/glm ${Python_INCLUDE_DIRS} ${TORCH_INCLUDE_DIRS})

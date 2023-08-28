@@ -57,8 +57,8 @@ __global__ void render_lines_kernel(
       const glm::vec2 indicator = sample_xy - start;
 
       // Determine whether the sample is inside the line in the parallel direction.
-      const int32_t cap = caps[sample_index];
-      const float width = widths[sample_index];
+      const int32_t cap = caps[line_index];
+      const float width = widths[line_index];
       const float extra = (cap == CAP_SQUARE) ? 0.5f * width : 0.f;
       const float parallel = glm::dot(u_delta, indicator);
       const bool parallel_inside_line =
