@@ -92,7 +92,7 @@ def get_line_rendering_function(
     ) -> Float[Tensor, "line 4"]:
         p, _ = xy.shape
         canvas = torch.zeros((p, 4), dtype=xy.dtype, device=xy.device)
-        render_points(
+        render_lines(
             canvas,
             xy,
             starts,
