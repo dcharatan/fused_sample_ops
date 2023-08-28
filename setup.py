@@ -5,10 +5,11 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 setup(
     name="torchdraw_cuda",
+    packages=["torchdraw_cuda"],
     ext_modules=[
         CUDAExtension(
-            "torchdraw_cuda",
-            [
+            name="torchdraw_cuda._cuda",
+            sources=[
                 "src/extension.cu",
                 "src/points.cu",
             ],
