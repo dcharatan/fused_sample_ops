@@ -12,6 +12,12 @@
         "**/Thumbs.db": true,
         "**/venv": true,
     },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "**/third_party/glm/*": true,
+    },
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.tabSize": 4,
