@@ -35,7 +35,7 @@ __global__ void render_points_kernel(
 
     // Iterate through the points.
     glm::vec3 color{0.f};
-    bool hit;
+    bool hit = false;
     for (int point_index = 0; point_index < points.size(0); point_index++) {
       // Compute the pixel-space distance between the point and the sample.
       const glm::vec2 point_world_xy = read_vec2(points[point_index]);
@@ -44,10 +44,10 @@ __global__ void render_points_kernel(
       const float distance = glm::length(sample_xy - point_pixel_xy);
 
       // If the distance indicates a hit, update the color.
-      if (distance <= outer_radii[sample_index] &&
-          distance >= inner_radii[sample_index]) {
+      if (distance <= outer_radii[point_index] &&
+          distance >= inner_radii[point_index]) {
         hit = true;
-        color = read_vec3(colors[sample_index]);
+        color = read_vec3(colors[point_index]);
       }
     }
 
