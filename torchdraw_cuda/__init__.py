@@ -45,18 +45,19 @@ def get_point_rendering_function(
     def color_function(
         xy: Float[Tensor, "point 2"],
     ) -> Float[Tensor, "point 4"]:
-        p, _ = xy.shape
-        canvas = torch.zeros((p, 4), dtype=xy.dtype, device=xy.device)
-        render_points(
-            canvas,
-            xy,
-            points,
-            colors,
-            outer_radii,
-            inner_radii,
-            bounds,
-            torch.tensor(image_shape, dtype=torch.int64, device=xy.device),
-        )
+        n, _ = xy.shape
+        canvas = torch.zeros((n, 4), dtype=xy.dtype, device=xy.device)
+        if n > 0 and canvas.numel() > 0:
+            render_points(
+                canvas,
+                xy,
+                points,
+                colors,
+                outer_radii,
+                inner_radii,
+                bounds,
+                torch.tensor(image_shape, dtype=torch.int64, device=xy.device),
+            )
         return canvas
 
     return color_function
@@ -90,19 +91,20 @@ def get_line_rendering_function(
     def color_function(
         xy: Float[Tensor, "line 2"],
     ) -> Float[Tensor, "line 4"]:
-        p, _ = xy.shape
-        canvas = torch.zeros((p, 4), dtype=xy.dtype, device=xy.device)
-        render_lines(
-            canvas,
-            xy,
-            starts,
-            ends,
-            colors,
-            widths,
-            CAP_TYPES[cap] * torch.ones((p,), dtype=torch.int32, device=xy.device),
-            bounds,
-            torch.tensor(image_shape, dtype=torch.int64, device=xy.device),
-        )
+        n, _ = xy.shape
+        canvas = torch.zeros((n, 4), dtype=xy.dtype, device=xy.device)
+        if n > 0 and canvas.numel() > 0:
+            render_lines(
+                canvas,
+                xy,
+                starts,
+                ends,
+                colors,
+                widths,
+                CAP_TYPES[cap] * torch.ones((n,), dtype=torch.int32, device=xy.device),
+                bounds,
+                torch.tensor(image_shape, dtype=torch.int64, device=xy.device),
+            )
         return canvas
 
     return color_function
