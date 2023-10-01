@@ -12,8 +12,7 @@ setup(
             name="fused_grid_sum._cuda",
             sources=[
                 "src/extension.cu",
-                "src/points.cu",
-                "src/lines.cu",
+                "src/fused_grid_sum.cu",
             ],
             extra_compile_args={
                 "nvcc": [

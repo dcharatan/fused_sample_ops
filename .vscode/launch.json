@@ -1,0 +1,11 @@
+{
+  "configurations": [
+    {
+      "name": "Test Python Module",
+      "type": "python",
+      "request": "launch",
+      "module": "test",
+      "justMyCode": true
+    }
+  ]
+}

@@ -18,8 +18,7 @@ set(CMAKE_CUDA_STANDARD 17)
 # Define the _cuda library.
 add_library(_cuda SHARED
 	src/extension.cu
-	src/points.cu
-	src/lines.cu
+	src/fused_grid_sum.cu
 )
 
 # This workaround is needed to avoid linking errors (undefined symbols).
