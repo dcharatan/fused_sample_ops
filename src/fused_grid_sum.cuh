@@ -4,8 +4,8 @@
 
 namespace fused_grid_sum {
 
-void forward(torch::Tensor result,
-             torch::Tensor image,
+void forward(torch::Tensor results,
+             torch::Tensor images,
              torch::Tensor samples,
              torch::Tensor weights);
 
@@ -18,30 +18,30 @@ __device__ scalar_t clamp(const scalar_t value,
 
 template <typename scalar_t>
 __global__ void forward_kernel(
-    torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> result,
-    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> image,
+    torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> results,
+    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> images,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> samples,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits>
         weights) {
   // Create shorthands for dimension sizes.
-  const int32_t b = result.size(0);  // batch
-  const int32_t hd = result.size(1);  // head
-  const int32_t s = result.size(2);  // sample_independent
-  const int32_t c = result.size(3);  // channel
+  const int32_t b = results.size(0);  // batch
+  const int32_t hd = results.size(1);  // head
+  const int32_t s = results.size(2);  // sample_independent
+  const int32_t c = results.size(3);  // channel
   const int32_t num_threads = b * hd * s * c;
 
   const int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
   if (thread_index < num_threads) {
     // Unravel the thread index.
-    const int32_t i_b = (thread_index / result.stride(0)) % b;
-    const int32_t i_hd = (thread_index / result.stride(1)) % hd;
-    const int32_t i_s = (thread_index / result.stride(2)) % s;
-    const int32_t i_c = (thread_index / result.stride(3)) % c;
+    const int32_t i_b = (thread_index / results.stride(0)) % b;
+    const int32_t i_hd = (thread_index / results.stride(1)) % hd;
+    const int32_t i_s = (thread_index / results.stride(2)) % s;
+    const int32_t i_c = (thread_index / results.stride(3)) % c;
 
     // Sum over the sample_summed dimension.
     const int32_t sample_summed = weights.size(3);
-    const int32_t height = image.size(2);
-    const int32_t width = image.size(3);
+    const int32_t height = images.size(2);
+    const int32_t width = images.size(3);
     scalar_t sum = 0;
     for (int32_t i = 0; i < sample_summed; i++) {
       // Get X and Y. To match the convention in torch.nn.functional.grid_sample,
@@ -60,13 +60,13 @@ __global__ void forward_kernel(
         const int32_t col_n = col + 1;
 
         const scalar_t top_left =
-            (row == -1 || col == -1) ? 0 : image[i_b][i_c][row][col];
+            (row == -1 || col == -1) ? 0 : images[i_b][i_c][row][col];
         const scalar_t top_right =
-            (row == -1 || col_n == width) ? 0 : image[i_b][i_c][row][col_n];
+            (row == -1 || col_n == width) ? 0 : images[i_b][i_c][row][col_n];
         const scalar_t bottom_left =
-            (row_n == height || col == -1) ? 0 : image[i_b][i_c][row_n][col];
+            (row_n == height || col == -1) ? 0 : images[i_b][i_c][row_n][col];
         const scalar_t bottom_right =
-            (row_n == height || col_n == width) ? 0 : image[i_b][i_c][row_n][col_n];
+            (row_n == height || col_n == width) ? 0 : images[i_b][i_c][row_n][col_n];
 
         // Run horizontal linear interpolation.
         const scalar_t top = top_left * (1 - col_fraction) + col_fraction * top_right;
@@ -81,7 +81,7 @@ __global__ void forward_kernel(
         sum += interpolated * weight;
       }
     }
-    result[i_b][i_hd][i_s][i_c] = sum;
+    results[i_b][i_hd][i_s][i_c] = sum;
   }
 }
 
