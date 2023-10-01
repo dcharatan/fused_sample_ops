@@ -12,6 +12,6 @@ def fused_grid_sum_forward(
 ) -> Float[Tensor, "batch head sample_independent channel"]:
     b, c, _, _ = image.shape
     _, hd, s, _ = weights.shape
-    result = torch.zeros((b, hd, s, c), dtype=image.dtype, device=image.device)
+    result = torch.empty((b, hd, s, c), dtype=image.dtype, device=image.device)
     _cuda.forward(result, image, samples, weights)
     return result
