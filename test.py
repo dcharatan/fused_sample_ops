@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     image = torch.ones((b, c, h, w), dtype=torch.float32, device=device)
     samples = torch.ones((b, s, s2, 2), dtype=torch.float32, device=device)
-    weights = torch.ones((b, s, hd, s2), dtype=torch.float32, device=device)
+    weights = torch.ones((b, hd, s, s2), dtype=torch.float32, device=device)
 
     result = fused_grid_sum_forward(image, samples, weights)
 

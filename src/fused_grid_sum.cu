@@ -1,16 +1,18 @@
+#include <iostream>
 #include "fused_grid_sum.cuh"
 
 constexpr int BLOCK_SIZE = 512;
 
-torch::Tensor fused_grid_sum::forward(torch::Tensor result,
-                                      torch::Tensor image,
-                                      torch::Tensor samples,
-                                      torch::Tensor weights) {
+void fused_grid_sum::forward(torch::Tensor result,
+                             torch::Tensor image,
+                             torch::Tensor samples,
+                             torch::Tensor weights) {
   // Compute the number of threads. For now, just parallelize over independent samples.
-  const int64_t batch = weights.size(0);
-  const int64_t sample_independent = weights.size(1);
-  const int64_t head = weights.size(2);
-  const int64_t num_threads = batch * sample_independent * head;
+  const int64_t b = result.size(0);  // batch
+  const int64_t hd = result.size(1);  // head
+  const int64_t s = result.size(2);  // sample_independent
+  const int64_t c = result.size(3);  // channel
+  const int64_t num_threads = b * hd * s * c;
 
   const int grid_size = (num_threads + BLOCK_SIZE - 1) / BLOCK_SIZE;
   AT_DISPATCH_FLOATING_TYPES(
@@ -21,6 +23,4 @@ torch::Tensor fused_grid_sum::forward(torch::Tensor result,
             samples.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
             weights.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>());
       }));
-
-  return samples;
 }

@@ -4,10 +4,10 @@
 
 namespace fused_grid_sum {
 
-torch::Tensor forward(torch::Tensor result,
-                      torch::Tensor image,
-                      torch::Tensor samples,
-                      torch::Tensor weights);
+void forward(torch::Tensor result,
+             torch::Tensor image,
+             torch::Tensor samples,
+             torch::Tensor weights);
 
 template <typename scalar_t>
 __global__ void forward_kernel(
@@ -18,20 +18,18 @@ __global__ void forward_kernel(
         weights) {
   // Create shorthands for dimension sizes.
   const int64_t b = result.size(0);  // batch
-  const int64_t s = result.size(1);  // sample_independent
-  const int64_t hd = result.size(2);  // head
+  const int64_t hd = result.size(1);  // head
+  const int64_t s = result.size(2);  // sample_independent
   const int64_t c = result.size(3);  // channel
-  const int64_t num_threads = b * s * hd;
+  const int64_t num_threads = b * hd * s * c;
 
   const int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
   if (thread_index < num_threads) {
-    const int64_t i_b = thread_index % result.stride(0);
-    const int64_t i_s = thread_index % result.stride(1);
-    const int64_t i_hd = thread_index % result.stride(2);
-
-    for (int32_t i_c = 0; i_c < c; i_c++) {
-      result[i_b][i_s][i_hd][i_c] = 123.0;
-    }
+    const int64_t i_b = (thread_index / result.stride(0)) % b;
+    const int64_t i_hd = (thread_index / result.stride(1)) % hd;
+    const int64_t i_s = (thread_index / result.stride(2)) % s;
+    const int64_t i_c = (thread_index / result.stride(3)) % c;
+    result[i_b][i_hd][i_s][i_c] = 123.0;
   }
   // if (sample_index < canvas.size(0)) {
   //   const glm::vec2 sample_xy = read_vec2(samples[sample_index]);
