@@ -56,12 +56,16 @@ __global__ void forward_kernel(
         const scalar_t bottom_right = image[i_b][i_c][row + 1][col + 1];
 
         // Run horizontal linear interpolation.
-        const scalar_t top = col_fraction * (1 - top_left) + col_fraction * top_right;
+        const scalar_t top = top_left * (1 - col_fraction) + col_fraction * top_right;
         const scalar_t bottom =
-            col_fraction * (1 - bottom_left) + col_fraction * bottom_right;
+            bottom_left * (1 - col_fraction) + col_fraction * bottom_right;
 
         // Run vertical linear interpolation.
-        sum += top * (1 - row_fraction) + bottom * row_fraction;
+        const scalar_t interpolated = top * (1 - row_fraction) + bottom * row_fraction;
+
+        // Multiply by the corresponding weight and sum.
+        const scalar_t weight = weights[i_b][i_hd][i_s][i];
+        sum += interpolated * weight;
       }
     }
     result[i_b][i_hd][i_s][i_c] = sum;
