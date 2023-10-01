@@ -26,9 +26,10 @@ if __name__ == "__main__":
 
     # mini benchmark
 
-    from tqdm import trange
+    from tqdm import trange, tqdm
     import torch.nn.functional as F
     from einops import einsum
+    from itertools import permutations
 
     for _ in trange(1):
         torch.cuda.synchronize(device)
@@ -46,6 +47,28 @@ if __name__ == "__main__":
         )
         result2 = einsum(grid_samples, weights, "b c s s2, b hd s s2 -> b hd s c")
         torch.cuda.synchronize(device)
+
+    def compare(samples):
+        image = torch.zeros((1, 1, 2, 2), dtype=torch.float32, device=device)
+        image[..., 0, 0] = 1
+        image[..., 0, 1] = 10
+        image[..., 1, 0] = 100
+        image[..., 1, 1] = 1000
+        samples = torch.tensor(samples, device=device, dtype=torch.float32)[
+            None, None, None
+        ]
+
+        original = F.grid_sample(
+            image,
+            samples,
+            mode="bilinear",
+            padding_mode="zeros",
+            align_corners=False,
+        )
+        ours = fused_grid_sum_forward(
+            image, samples, torch.ones((1, 1, 1, 1), dtype=torch.float32, device=device)
+        )
+        return original, ours
 
     a = 1
     a = 1

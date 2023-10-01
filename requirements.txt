@@ -1,3 +1,5 @@
 black
 ruff
 jaxtyping
+einops
+pytest
