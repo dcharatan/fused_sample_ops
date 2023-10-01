@@ -6,4 +6,5 @@
 // the compilation method.
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("forward", &fused_grid_sum::forward, "fused grid sum forward (CUDA)");
+  m.def("backward", &fused_grid_sum::backward, "fused grid sum backward (CUDA)");
 }

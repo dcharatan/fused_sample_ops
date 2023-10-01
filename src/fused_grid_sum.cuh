@@ -9,6 +9,15 @@ void forward(torch::Tensor results,
              torch::Tensor samples,
              torch::Tensor weights);
 
+// We don't need gradients for the sample positions.
+void backward(torch::Tensor resultw,
+              torch::Tensor result_gradients,
+              torch::Tensor images,
+              torch::Tensor image_gradients,
+              torch::Tensor samples,
+              torch::Tensor weights,
+              torch::Tensor weight_gradients);
+
 template <typename scalar_t>
 __device__ scalar_t clamp(const scalar_t value,
                           const scalar_t min_value,
@@ -82,6 +91,31 @@ __global__ void forward_kernel(
       }
     }
     results[i_b][i_hd][i_s][i_c] = sum;
+  }
+}
+
+template <typename scalar_t>
+__global__ void backward_kernel(
+    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> results,
+    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits>
+        result_gradients,
+    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> images,
+    torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits>
+        image_gradients,
+    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> samples,
+    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> weights,
+    torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits>
+        weight_gradients) {
+  // Create shorthands for dimension sizes.
+  const int32_t b = results.size(0);  // batch
+  const int32_t hd = results.size(1);  // head
+  const int32_t s = results.size(2);  // sample_independent
+  const int32_t c = results.size(3);  // channel
+  const int32_t num_threads = b * hd * s * c;
+
+  const int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (thread_index < num_threads) {
+    // TBD
   }
 }
 
