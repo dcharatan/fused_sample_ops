@@ -5,7 +5,7 @@
 #include "conversions.cuh"
 #include "glm_adapter.cuh"
 
-namespace torchdraw_cuda {
+namespace fused_grid_sum {
 
 torch::Tensor render_points(torch::Tensor canvas,
                             torch::Tensor samples,
@@ -57,4 +57,4 @@ __global__ void render_points_kernel(
   }
 }
 
-}  // namespace torchdraw_cuda
+}  // namespace fused_grid_sum

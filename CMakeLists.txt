@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
-project(torchdraw_cuda LANGUAGES CXX CUDA)
+project(fused_grid_sum LANGUAGES CXX CUDA)
 
 # Connect the project to Python.
 find_package(Python COMPONENTS Development)

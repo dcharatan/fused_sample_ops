@@ -2,7 +2,7 @@
 
 constexpr int BLOCK_SIZE = 512;
 
-torch::Tensor torchdraw_cuda::render_points(torch::Tensor canvas,
+torch::Tensor fused_grid_sum::render_points(torch::Tensor canvas,
                                             torch::Tensor samples,
                                             torch::Tensor points,
                                             torch::Tensor colors,

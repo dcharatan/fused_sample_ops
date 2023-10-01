@@ -5,7 +5,7 @@
 #include "conversions.cuh"
 #include "glm_adapter.cuh"
 
-namespace torchdraw_cuda {
+namespace fused_grid_sum {
 
 // Define line cap types.
 constexpr int CAP_BUTT = 0;
@@ -93,4 +93,4 @@ __global__ void render_lines_kernel(
   }
 }
 
-}  // namespace torchdraw_cuda
+}  // namespace fused_grid_sum

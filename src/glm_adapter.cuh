@@ -4,7 +4,7 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
-namespace torchdraw_cuda {
+namespace fused_grid_sum {
 
 template <typename scalar_t, template <typename U> class PtrTraits, typename index_t>
 __device__ glm::vec3 read_vec3(
@@ -48,4 +48,4 @@ __device__ void write_vec2(
   }
 }
 
-}  // namespace torchdraw_cuda
+}  // namespace fused_grid_sum

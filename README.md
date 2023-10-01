@@ -1,4 +1,4 @@
-# torchdraw_cuda
+# fused_grid_sum
 
 This repository contains unoptimized CUDA functions for drawing points and lines. I mainly created it to familiarize myself with the workflow for creating CUDA PyTorch extensions, although it runs much faster than the equivalent PyTorch functions.
 
@@ -16,6 +16,6 @@ Inside VS Code, run `CMake: Configure` and then `CMake: Build`. You may want to 
 
 To install this package, do `python3 setup.py install` from the project root directory. To build without installing, run `python3 setup.py develop`. This will create `_cuda.<stuff>.so`.
 
-### Importing `torchdraw_cuda`
+### Importing `fused_grid_sum`
 
-Once the `.so` file is created in the `torchdraw_cuda` directory (using CMake, you'll have to move it there manually), you can import `torchdraw_cuda` and use the provided Python wrappers. These wrappers have `jaxtyping` annotations that ensure that the CUDA code is called correctly.
+Once the `.so` file is created in the `fused_grid_sum` directory (using CMake, you'll have to move it there manually), you can import `fused_grid_sum` and use the provided Python wrappers. These wrappers have `jaxtyping` annotations that ensure that the CUDA code is called correctly.

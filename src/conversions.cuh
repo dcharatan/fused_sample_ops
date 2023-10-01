@@ -4,7 +4,7 @@
 #include <glm/vec2.hpp>
 #include "glm_adapter.cuh"
 
-namespace torchdraw_cuda {
+namespace fused_grid_sum {
 
 template <typename scalar_t>
 __device__ glm::vec2 pixel_to_world(
@@ -32,4 +32,4 @@ __device__ glm::vec2 world_to_pixel(
   return (xy - minima) / (maxima - minima) * image_wh;
 }
 
-}  // namespace torchdraw_cuda
+}  // namespace fused_grid_sum
