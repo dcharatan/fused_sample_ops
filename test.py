@@ -18,9 +18,9 @@ if __name__ == "__main__":
     s2 = 132
     hd = 8
 
-    image = torch.ones((b, c, h, w), dtype=torch.float32, device=device)
-    samples = 0 * torch.ones((b, s, s2, 2), dtype=torch.float32, device=device)
-    weights = torch.ones((b, hd, s, s2), dtype=torch.float32, device=device)
+    image = torch.rand((b, c, h, w), dtype=torch.float32, device=device)
+    samples = 2 * torch.rand((b, s, s2, 2), dtype=torch.float32, device=device) - 1
+    weights = torch.rand((b, hd, s, s2), dtype=torch.float32, device=device)
 
     result = fused_grid_sum_forward(image, samples, weights)
 
@@ -30,12 +30,12 @@ if __name__ == "__main__":
     import torch.nn.functional as F
     from einops import einsum
 
-    for _ in trange(1000):
+    for _ in trange(1):
         torch.cuda.synchronize(device)
         result = fused_grid_sum_forward(image, samples, weights)
         torch.cuda.synchronize(device)
 
-    for _ in trange(1000):
+    for _ in trange(1):
         torch.cuda.synchronize(device)
         grid_samples = F.grid_sample(
             image,
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             padding_mode="zeros",
             align_corners=False,
         )
-        result = einsum(grid_samples, weights, "b c s s2, b hd s s2 -> b hd s c")
+        result2 = einsum(grid_samples, weights, "b c s s2, b hd s s2 -> b hd s c")
         torch.cuda.synchronize(device)
 
     a = 1

@@ -10,6 +10,13 @@ void forward(torch::Tensor result,
              torch::Tensor weights);
 
 template <typename scalar_t>
+__device__ scalar_t clamp(const scalar_t value,
+                          const scalar_t min_value,
+                          const scalar_t max_value) {
+  return min(max(value, min_value), max_value);
+}
+
+template <typename scalar_t>
 __global__ void forward_kernel(
     torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> result,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> image,
@@ -38,17 +45,29 @@ __global__ void forward_kernel(
     scalar_t sum = 0;
     for (int32_t i = 0; i < sample_summed; i++) {
       // Get X and Y. To match the convention in torch.nn.functional.grid_sample,
-      // we assume that each image axis is in range [-1, 1]. We convert to range [0, 1].
-      const scalar_t x = samples[i_b][i_s][i][0] * 0.5 + 0.5;
-      const scalar_t y = samples[i_b][i_s][i][1] * 0.5 + 0.5;
-      const int32_t col = static_cast<int32_t>(x * width);
-      const int32_t row = static_cast<int32_t>(y * height);
+      // we assume that samples are in range [-1, 1]. We convert to the full image range
+      // here.
+      const scalar_t x = (samples[i_b][i_s][i][0] * 0.5 + 0.5) * width;
+      const scalar_t y = (samples[i_b][i_s][i][1] * 0.5 + 0.5) * height;
+
+      // When grid sampling with align_corners=False, the outer 0.5 pixels on the border
+      // of the image are not linearly interpolated. Thus, we clamp the sampling
+      // coordinates. Also, interpolation effectively happens between pixel centers, so
+      // we need to subtract 0.5 from the clamped values to get x/y values that can
+      // easily be interpolated. The half variable is needed because of the scalar_t
+      // template.
+      const scalar_t half = 0.5;
+      const scalar_t x_offset = clamp(x, half, width - half) - half;
+      const scalar_t y_offset = clamp(y, half, height - half) - half;
+
+      const int32_t col = static_cast<int32_t>(x_offset);
+      const int32_t row = static_cast<int32_t>(y_offset);
 
       // Only add to the sum if the row and column are both valid. This is equivalent to
       // grid sample with zero padding.
-      if (0 <= row && row < height && 0 <= col && col < width) {
-        const scalar_t row_fraction = fmod(y * height, 1.f);
-        const scalar_t col_fraction = fmod(x * width, 1.f);
+      if (0 <= x && x <= width && 0 <= y && y <= height) {
+        const scalar_t row_fraction = fmod(y_offset, 1);
+        const scalar_t col_fraction = fmod(x_offset, 1);
 
         const scalar_t top_left = image[i_b][i_c][row][col];
         const scalar_t top_right = image[i_b][i_c][row][col + 1];
