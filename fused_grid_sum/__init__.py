@@ -56,3 +56,17 @@ class FusedGridSum(Function):
         )
 
         return image_gradients, None, weight_gradients
+
+
+_fused_grid_sum = FusedGridSum.apply
+
+
+def fused_grid_sum(
+    images: TypeImages,
+    samples: TypeSamples,
+    weights: TypeWeights,
+) -> TypeResults:
+    """Compute a fused combination of torch.nn.functional.grid_sample and summation
+    across the sample_summed dimension.
+    """
+    return _fused_grid_sum(images, samples, weights)
