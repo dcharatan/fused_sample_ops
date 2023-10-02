@@ -9,9 +9,8 @@ void forward(torch::Tensor results,
              torch::Tensor samples,
              torch::Tensor weights);
 
-// We don't need gradients for the sample positions.
-void backward(torch::Tensor resultw,
-              torch::Tensor result_gradients,
+// We don't compute gradients for the sample positions.
+void backward(torch::Tensor result_gradients,
               torch::Tensor images,
               torch::Tensor image_gradients,
               torch::Tensor samples,
@@ -96,7 +95,6 @@ __global__ void forward_kernel(
 
 template <typename scalar_t>
 __global__ void backward_kernel(
-    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> results,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits>
         result_gradients,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> images,
@@ -107,10 +105,10 @@ __global__ void backward_kernel(
     torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits>
         weight_gradients) {
   // Create shorthands for dimension sizes.
-  const int32_t b = results.size(0);  // batch
-  const int32_t hd = results.size(1);  // head
-  const int32_t s = results.size(2);  // sample_independent
-  const int32_t c = results.size(3);  // channel
+  const int32_t b = result_gradients.size(0);  // batch
+  const int32_t hd = result_gradients.size(1);  // head
+  const int32_t s = result_gradients.size(2);  // sample_independent
+  const int32_t c = result_gradients.size(3);  // channel
   const int32_t num_threads = b * hd * s * c;
 
   const int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
