@@ -34,14 +34,11 @@ __launch_bounds__(256) __global__ void grid_sample_dot_forward_kernel(
     const index_t q = (index / D) % Q;
     const index_t d = index % D;
 
-    // get the corresponding images x, y co-ordinates from samples
-    scalar_t x = samples[b][q][d][0];
-    scalar_t y = samples[b][q][d][1];
+    // Get image coordinates in pixel space.
+    scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
+    scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
 
-    scalar_t ix = grid_sampler_compute_source_index(x, W);
-    scalar_t iy = grid_sampler_compute_source_index(y, H);
-
-    // get NE, NW, SE, SW pixel values from (x, y)
+    // Get corner pixel indices (referenced using compass directions).
     index_t ix_nw = static_cast<index_t>(::floor(ix));
     index_t iy_nw = static_cast<index_t>(::floor(iy));
     index_t ix_ne = ix_nw + 1;
@@ -51,7 +48,7 @@ __launch_bounds__(256) __global__ void grid_sample_dot_forward_kernel(
     index_t ix_se = ix_nw + 1;
     index_t iy_se = iy_nw + 1;
 
-    // get surfaces to each neighbor:
+    // Compute interpolation weights.
     scalar_t nw = (ix_se - ix) * (iy_se - iy);
     scalar_t ne = (ix - ix_sw) * (iy_sw - iy);
     scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
