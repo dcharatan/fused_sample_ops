@@ -29,11 +29,11 @@ __device__ __forceinline__ scalar_t grid_sampler_compute_source_index(scalar_t c
   return ((coord + 1) * size - 1) / 2;
 }
 
-__device__ __forceinline__ bool within_bounds_2d(int64_t row,
-                                                 int64_t col,
-                                                 int64_t height,
-                                                 int64_t width) {
-  return row >= 0 && row < height && col >= 0 && col < width;
+__device__ __forceinline__ bool within_bounds_2d(int64_t h,
+                                                 int64_t w,
+                                                 int64_t H,
+                                                 int64_t W) {
+  return h >= 0 && h < H && w >= 0 && w < W;
 }
 
 }  // namespace fused_grid_sum
