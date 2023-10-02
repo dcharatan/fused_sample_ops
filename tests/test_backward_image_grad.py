@@ -19,15 +19,15 @@ def run_comparison(make_single_sample, image_2x2, single_weight):
     ]:
         sample = make_single_sample(x, y)
 
-        weight_expected = single_weight.clone().requires_grad_(True)
-        expected = fused_grid_sum(image_2x2, sample, weight_expected)
+        image_expected = image_2x2.clone().requires_grad_(True)
+        expected = fused_grid_sum(image_expected, sample, single_weight)
         expected.sum().backward()
 
-        weight_actual = single_weight.clone().requires_grad_(True)
-        actual = fused_grid_sum_torch(image_2x2, sample, weight_actual)
+        image_actual = image_2x2.clone().requires_grad_(True)
+        actual = fused_grid_sum_torch(image_actual, sample, single_weight)
         actual.sum().backward()
 
-        assert torch.allclose(weight_expected.grad, weight_actual.grad, atol=5e-5)
+        assert torch.allclose(image_expected.grad, image_actual.grad, atol=5e-5)
 
     return _run_comparison
 

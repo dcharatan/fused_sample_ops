@@ -29,4 +29,4 @@ def make_single_sample(device):
 
 @pytest.fixture
 def single_weight(device):
-    return torch.tensor(1, dtype=torch.float32, device=device)[None, None, None, None]
+    return torch.tensor(2, dtype=torch.float32, device=device)[None, None, None, None]
