@@ -15,18 +15,23 @@ with install_import_hook(
 if __name__ == "__main__":
     device = torch.device("cuda:0")
 
-    b = 8
-    c = 128
-    h = 129
-    w = 130
-    s = 128 * 64
+    B = 8
+    C_QUERIES = 128
+    H = 128
+    W = 256
+    NUM_OCTAVES = 0
+    Q = 256
+    D = 123
+
+    C_IMAGES = C_QUERIES + 2 * NUM_OCTAVES
 
     def rand(x):
         return torch.rand(x, dtype=torch.float32, device=device)
 
-    images = rand((b, c, h, w))
-    samples = 2.5 * rand((b, s, 2)) - 1.25
-    queries = rand((b, s, c))
+    images = rand((B, C_IMAGES, H, W))
+    samples = 2.5 * rand((B, Q, D, 2)) - 1.25
+    queries = rand((B, Q, C_QUERIES))
+    depths = rand((B, Q, D))
 
     # test forward pass
     custom_time = 0
@@ -35,11 +40,13 @@ if __name__ == "__main__":
         for _ in trange(500):
             torch.cuda.synchronize()
             start = time()
-            custom = grid_sample_dot(images, samples, queries)
+            custom = grid_sample_dot(images, samples, queries, depths, NUM_OCTAVES)
             torch.cuda.synchronize()
             custom_time += time() - start
             start = time()
-            original = grid_sample_dot_torch(images, samples, queries)
+            original = grid_sample_dot_torch(
+                images, samples, queries, depths, NUM_OCTAVES
+            )
             torch.cuda.synchronize()
             torch_time += time() - start
     assert torch.allclose(custom, original)

@@ -1,22 +1,48 @@
+import torch
 import torch.nn.functional as F
-from einops import einsum, rearrange
+from einops import einsum, rearrange, repeat
 
-from .grid_sample_dot import TypeImages, TypeQueries, TypeResults, TypeSamples
+from .grid_sample_dot import (
+    TypeDepths,
+    TypeImages,
+    TypeQueries,
+    TypeResults,
+    TypeSamples,
+)
 
 
 def grid_sample_dot_torch(
     images: TypeImages,
     samples: TypeSamples,
     queries: TypeQueries,
+    depths: TypeDepths,
+    num_octaves: int,
 ) -> TypeResults:
     """The non-fused equivalent of grid_sample_dot."""
 
     samples = F.grid_sample(
         images,
-        rearrange(samples, "b s xy -> b s () xy"),
+        samples,
         mode="bilinear",
         padding_mode="zeros",
         align_corners=False,
     )
-    samples = rearrange(samples, "b c s () -> b s c")
-    return einsum(samples, queries, "b s c, b s c -> b s")
+
+    # Generate positional encoding frequencies and phases.
+    frequencies = torch.arange(num_octaves, dtype=queries.dtype, device=queries.device)
+    frequencies = 2 * torch.pi * 2**frequencies
+    phases = torch.tensor([0, 1], dtype=queries.dtype, device=queries.device)
+    phases = 0.5 * torch.pi * phases
+
+    # Positionally encode the depths.
+    _, _, d = depths.shape
+    frequencies = repeat(frequencies, "f -> () (f p) () ()", p=2)
+    phases = repeat(phases, "p -> () (f p) () ()", f=num_octaves)
+    depths = rearrange(depths, "b q d -> b () q d")
+    depths = torch.sin(depths * frequencies + phases)
+
+    # Concatenate the positionally encoded depths onto the queries.
+    queries = repeat(queries, "b q c -> b c q d", d=d)
+    queries = torch.cat((queries, depths), dim=1)
+
+    return einsum(samples, queries, "b c q d, b c q d -> b q d")
