@@ -51,8 +51,10 @@ class FusedGridSum(Function):
         image_gradients = torch.zeros_like(images)
         weight_gradients = torch.zeros_like(weights)
 
+        # We make the result gradients contiguous so that we don't have to deal with
+        # icky broadcasting problems (strides that are zero).
         _cuda.backward(
-            result_gradients,
+            result_gradients.contiguous(),
             images,
             image_gradients,
             samples,
