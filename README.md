@@ -1,10 +1,24 @@
 # fused_grid_sum
 
-This repository contains unoptimized CUDA functions for drawing points and lines. I mainly created it to familiarize myself with the workflow for creating CUDA PyTorch extensions, although it runs much faster than the equivalent PyTorch functions.
+This repository contains unoptimized but fused CUDA code for the following operation:
 
-## Optimizations
+```
+def fused_grid_sum_torch(
+    image: Float[Tensor, "batch channel height width"],
+    samples: Float[Tensor, "batch sample_independent sample_summed 2"],
+    weights: Float[Tensor, "batch head sample_independent sample_summed"],
+) -> Float[Tensor, "batch head sample_independent channel"]:
+    grid_samples = F.grid_sample(
+        image,
+        samples,
+        mode="bilinear",
+        padding_mode="zeros",
+        align_corners=False,
+    )
+    return einsum(grid_samples, weights, "b c s s2, b hd s s2 -> b hd s c")
+```
 
-For small numbers of lines, `render_lines` is relatively fast on my workstation's 3090 Ti. For example, it renders 64,000,000 samples with 256 lines in 0.157 seconds, which is fast enough for non-real-time visualization. However, for larger numbers of lines, it becomes unacceptably slow. For example, rendering 16,384 lines takes 9.382 seconds. To improve this, one would probably first parallelize over lines to "scatter" them onto image tiles, then parallelize over samples and only consider lines in the corresponding tile.
+The kernel fusion means that the result of `grid_sample` doesn't need to be saved, dramatically reducing GPU memory usage.
 
 ## Compilation
 
