@@ -13,7 +13,7 @@ TypeDepths = Float[Tensor, "batch query depth"]
 TypeResults = Float[Tensor, "batch query depth"]
 
 
-class FusedGridSum(Function):
+class FusedSampleDot(Function):
     @staticmethod
     def forward(
         ctx: FunctionCtx,
@@ -36,7 +36,9 @@ class FusedGridSum(Function):
             (b, q, d),
             dtype=images.dtype,
             device=images.device,
-            requires_grad=images.requires_grad or queries.requires_grad,
+            requires_grad=images.requires_grad
+            or queries.requires_grad
+            or depths.requires_grad,
         )
 
         _cuda.grid_sample_dot_forward(images, samples, queries, depths, outputs)
@@ -69,10 +71,10 @@ class FusedGridSum(Function):
             depth_gradients,
         )
 
-        return image_gradients, None, query_gradients, depth_gradients
+        return image_gradients, None, query_gradients, depth_gradients, None
 
 
-_grid_sample_dot = FusedGridSum.apply
+_grid_sample_dot = FusedSampleDot.apply
 
 
 def grid_sample_dot(

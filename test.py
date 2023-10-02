@@ -19,7 +19,7 @@ if __name__ == "__main__":
     C_QUERIES = 128
     H = 128
     W = 256
-    NUM_OCTAVES = 0
+    NUM_OCTAVES = 6
     Q = 256
     D = 123
 
@@ -34,24 +34,56 @@ if __name__ == "__main__":
     depths = rand((B, Q, D))
 
     # test forward pass
-    custom_time = 0
-    torch_time = 0
-    with torch.no_grad():
-        for _ in trange(500):
-            torch.cuda.synchronize()
-            start = time()
-            custom = grid_sample_dot(images, samples, queries, depths, NUM_OCTAVES)
-            torch.cuda.synchronize()
-            custom_time += time() - start
-            start = time()
-            original = grid_sample_dot_torch(
-                images, samples, queries, depths, NUM_OCTAVES
-            )
-            torch.cuda.synchronize()
-            torch_time += time() - start
-    assert torch.allclose(custom, original)
-    print(f"custom time: {custom_time}")
-    print(f"torch time: {torch_time}")
+    forward_time_fused = 0
+    backward_time_fused = 0
+    forward_time_torch = 0
+    backward_time_torch = 0
+    for _ in trange(500):
+        torch.cuda.synchronize()
+        images_fused = images.clone().requires_grad_(True)
+        queries_fused = queries.clone().requires_grad_(True)
+        depths_fused = depths.clone().requires_grad_(True)
+        start = time()
+        result_fused = grid_sample_dot(
+            images_fused,
+            samples,
+            queries_fused,
+            depths_fused,
+            NUM_OCTAVES,
+        )
+        torch.cuda.synchronize()
+        forward_time_fused += time() - start
+        result_fused.sum().backward()
+        torch.cuda.synchronize()
+        backward_time_fused += time() - start
+
+        torch.cuda.synchronize()
+        images_torch = images.clone().requires_grad_(True)
+        queries_torch = queries.clone().requires_grad_(True)
+        depths_torch = depths.clone().requires_grad_(True)
+        start = time()
+        result_torch = grid_sample_dot_torch(
+            images_torch,
+            samples,
+            queries_torch,
+            depths_torch,
+            NUM_OCTAVES,
+        )
+        torch.cuda.synchronize()
+        forward_time_torch += time() - start
+        result_torch.sum().backward()
+        torch.cuda.synchronize()
+        backward_time_torch += time() - start
+
+        assert torch.allclose(result_fused, result_torch)
+        assert torch.allclose(images_fused.grad, images_torch.grad, atol=5e-5)
+        assert torch.allclose(queries_fused.grad, queries_torch.grad, atol=5e-5)
+        assert torch.allclose(depths_fused.grad, depths_torch.grad, atol=5e-5)
+
+    print(f"forward (fused): {forward_time_fused}")
+    print(f"forward (torch): {forward_time_torch}")
+    print(f"backward (fused): {backward_time_fused}")
+    print(f"backward (torch): {backward_time_torch}")
 
     a = 1
 
