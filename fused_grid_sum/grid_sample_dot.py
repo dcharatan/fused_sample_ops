@@ -28,7 +28,7 @@ class FusedGridSum(Function):
         assert c_images - c_queries == 2 * num_octaves
 
         # Save the inputs for the backward pass.
-        ctx.save_for_backward(images, samples, queries)
+        ctx.save_for_backward(images, samples, queries, depths)
 
         # Create an empty tensor for the result.
         b, q, d = depths.shape
@@ -48,8 +48,28 @@ class FusedGridSum(Function):
     def backward(
         ctx: FunctionCtx,
         result_gradients: TypeResults,
-    ) -> None:
-        raise Exception("Not implemented!")
+    ) -> tuple[TypeImages, None, TypeQueries, TypeDepths]:
+        # Retrieve the inputs to the forward pass.
+        images, samples, queries, depths = ctx.saved_tensors
+
+        # Create empty tensors for the gradients. Note that we don't return a gradient
+        # for the sample X/Y locations, since we don't need it.
+        image_gradients = torch.zeros_like(images)
+        query_gradients = torch.zeros_like(queries)
+        depth_gradients = torch.zeros_like(depths)
+
+        _cuda.grid_sample_dot_backward(
+            result_gradients,
+            images,
+            samples,
+            queries,
+            depths,
+            image_gradients,
+            query_gradients,
+            depth_gradients,
+        )
+
+        return image_gradients, None, query_gradients, depth_gradients
 
 
 _grid_sample_dot = FusedGridSum.apply
