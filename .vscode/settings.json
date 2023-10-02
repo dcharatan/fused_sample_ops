@@ -26,7 +26,8 @@
     "editor.formatOnSave": true,
     "editor.tabSize": 2,
     "files.associations": {
-        "functional": "cpp"
+        "functional": "cpp",
+        "limits": "cpp"
     },
     "python.testing.pytestArgs": [
         "."
