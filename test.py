@@ -5,7 +5,9 @@ with install_import_hook(
     ("src",),
     ("beartype", "beartype"),
 ):
-    from fused_grid_sum import fused_grid_sum_forward
+    from fused_grid_sum import fused_grid_sum
+    from tests.fused_grid_sum_torch import fused_grid_sum_torch
+
 
 if __name__ == "__main__":
     device = torch.device("cuda:0")
@@ -18,22 +20,39 @@ if __name__ == "__main__":
     s2 = 132
     hd = 8
 
-    image = torch.rand((b, c, h, w), dtype=torch.float32, device=device)
-    samples = 2 * torch.rand((b, s, s2, 2), dtype=torch.float32, device=device) - 1
-    weights = torch.rand((b, hd, s, s2), dtype=torch.float32, device=device)
+    def rand(x):
+        return torch.rand(x, dtype=torch.float32, device=device)
 
-    result = fused_grid_sum_forward(image, samples, weights)
+    images = rand((b, c, h, w))
+    samples = 2.5 * rand((b, s, s2, 2)) - 1.25
+    weights = rand((b, hd, s, s2))
 
-    # mini benchmark
+    images_expected = images.clone().requires_grad_(True)
+    weights_expected = weights.clone().requires_grad_(True)
+    result_expected = fused_grid_sum_torch(images_expected, samples, weights_expected)
+    result_expected.sum().backward()
 
-    from tqdm import trange, tqdm
-    import torch.nn.functional as F
-    from einops import einsum
-    from itertools import permutations
+    images_actual = images.clone().requires_grad_(True)
+    weights_actual = weights.clone().requires_grad_(True)
+    result_actual = fused_grid_sum(images_actual, samples, weights_actual)
+    result_actual.sum().backward()
+
+    assert torch.allclose(result_actual, result_expected, atol=1e-4)
+    print(f"result max diff: {(result_actual - result_expected).abs().max()}")
+    assert torch.allclose(images_actual.grad, images_expected.grad, atol=1e-4)
+    print(
+        f"image grad max diff: {(images_actual.grad - images_expected.grad).abs().max()}"
+    )
+    assert torch.allclose(weights_actual.grad, weights_expected.grad, atol=1e-4)
+    print(
+        f"weight grad max diff: {(weights_actual.grad - weights_expected.grad).abs().max()}"
+    )
+
+    # stuff below this line is currently junk
 
     for _ in trange(1):
         torch.cuda.synchronize(device)
-        result = fused_grid_sum_forward(image, samples, weights)
+        result = fused_grid_sum(image, samples, weights)
         torch.cuda.synchronize(device)
 
     for _ in trange(1):
@@ -65,7 +84,7 @@ if __name__ == "__main__":
             padding_mode="zeros",
             align_corners=False,
         )
-        ours = fused_grid_sum_forward(
+        ours = fused_grid_sum(
             image, samples, torch.ones((1, 1, 1, 1), dtype=torch.float32, device=device)
         )
         return original, ours
