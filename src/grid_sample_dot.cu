@@ -38,7 +38,7 @@ void fused_grid_sum::grid_sample_dot_backward(torch::Tensor result_gradients,
                                               torch::Tensor query_gradients,
                                               torch::Tensor depth_gradients) {
   // We assume that 32-bit indexing can be used and that only float32 and float64 are
-  // supported.
+  // supported. We also assume that all tensors (except samples) need a gradient.
   int B = images.size(0);
   int Q = samples.size(1);
   int D = samples.size(2);

@@ -167,6 +167,7 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
     scalar_t se = (ix - ix_nw) * (iy - iy_nw);
 
     // Compute the dot product with respect to the image.
+    const scalar_t result_gradient = result_gradients[b][q][d];
     scalar_t dot_product = 0;
     index_t c = 0;
     for (; c < C_queries; c++) {
@@ -174,15 +175,19 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
 
       if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
         dot_product += images[b][c][iy_nw][ix_nw] * nw * query;
+        atomicAdd(&image_gradients[b][c][iy_nw][ix_nw], result_gradient * nw * query);
       }
       if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
         dot_product += images[b][c][iy_ne][ix_ne] * ne * query;
+        atomicAdd(&image_gradients[b][c][iy_ne][ix_ne], result_gradient * ne * query);
       }
       if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
         dot_product += images[b][c][iy_sw][ix_sw] * sw * query;
+        atomicAdd(&image_gradients[b][c][iy_sw][ix_sw], result_gradient * sw * query);
       }
       if (within_bounds_2d(iy_se, ix_se, H, W)) {
         dot_product += images[b][c][iy_se][ix_se] * se * query;
+        atomicAdd(&image_gradients[b][c][iy_se][ix_se], result_gradient * se * query);
       }
     }
 
@@ -198,15 +203,19 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
 
       if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
         dot_product += images[b][c][iy_nw][ix_nw] * nw * query;
+        atomicAdd(&image_gradients[b][c][iy_nw][ix_nw], result_gradient * nw * query);
       }
       if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
         dot_product += images[b][c][iy_ne][ix_ne] * ne * query;
+        atomicAdd(&image_gradients[b][c][iy_ne][ix_ne], result_gradient * ne * query);
       }
       if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
         dot_product += images[b][c][iy_sw][ix_sw] * sw * query;
+        atomicAdd(&image_gradients[b][c][iy_sw][ix_sw], result_gradient * sw * query);
       }
       if (within_bounds_2d(iy_se, ix_se, H, W)) {
         dot_product += images[b][c][iy_se][ix_se] * se * query;
+        atomicAdd(&image_gradients[b][c][iy_se][ix_se], result_gradient * se * query);
       }
 
       // Update the positional encoding parameters.
@@ -215,8 +224,6 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
       }
       use_cos = !use_cos;
     }
-
-    outputs[b][q][d] = dot_product;
   }
 }
 
