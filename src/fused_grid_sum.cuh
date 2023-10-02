@@ -114,12 +114,13 @@ __global__ void backward_kernel(
   const int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
   if (thread_index < num_threads) {
     // Unravel the thread index.
-    const int32_t i_b = (thread_index / results.stride(0)) % b;
-    const int32_t i_hd = (thread_index / results.stride(1)) % hd;
-    const int32_t i_s = (thread_index / results.stride(2)) % s;
-    const int32_t i_c = (thread_index / results.stride(3)) % c;
+    const int32_t i_b = (thread_index / result_gradients.stride(0)) % b;
+    const int32_t i_hd = (thread_index / result_gradients.stride(1)) % hd;
+    const int32_t i_s = (thread_index / result_gradients.stride(2)) % s;
+    const int32_t i_c = (thread_index / result_gradients.stride(3)) % c;
 
-    // Sum over the sample_summed dimension.
+    // Repeat the forward pass in the backward pass. This allows us to avoid storing the
+    // grid-sampled tensor at any point during the forward and backward passes.
     const int32_t sample_summed = weights.size(3);
     const int32_t height = images.size(2);
     const int32_t width = images.size(3);
@@ -140,6 +141,40 @@ __global__ void backward_kernel(
         const int32_t row_n = row + 1;
         const int32_t col_n = col + 1;
 
+        const scalar_t result_gradient = result_gradients[i_b][i_hd][i_s][i_c];
+        const scalar_t weight = weights[i_b][i_hd][i_s][i];
+        const scalar_t weight_with_grad = weight * result_gradient;
+
+        // Compute gradients for the top left sample.
+        if (row != -1 && col != -1) {
+          const scalar_t top_left_grad =
+              weight_with_grad * (1 - col_fraction) * (1 - row_fraction);
+          atomicAdd(&image_gradients[i_b][i_c][row][col], top_left_grad);
+        }
+
+        // Compute gradients for the top right sample.
+        if (row != -1 && col_n != width) {
+          const scalar_t top_right_grad =
+              weight_with_grad * col_fraction * (1 - row_fraction);
+          atomicAdd(&image_gradients[i_b][i_c][row][col_n], top_right_grad);
+        }
+
+        // Compute gradients for the bottom left sample.
+        if (row_n != height && col != -1) {
+          const scalar_t bottom_left_grad =
+              weight_with_grad * (1 - col_fraction) * row_fraction;
+          atomicAdd(&image_gradients[i_b][i_c][row_n][col], bottom_left_grad);
+        }
+
+        // Compute gradients for the bottom right sample.
+        if (row_n != height && col_n != width) {
+          const scalar_t bottom_right_grad =
+              weight_with_grad * col_fraction * row_fraction;
+          atomicAdd(&image_gradients[i_b][i_c][row_n][col_n], bottom_right_grad);
+        }
+
+        // Recompute the value of the interpolation so that we can update the weight
+        // gradient.
         const scalar_t top_left =
             (row == -1 || col == -1) ? 0 : images[i_b][i_c][row][col];
         const scalar_t top_right =
@@ -157,12 +192,10 @@ __global__ void backward_kernel(
         // Run vertical linear interpolation.
         const scalar_t interpolated = top * (1 - row_fraction) + bottom * row_fraction;
 
-        // Multiply by the corresponding weight and sum.
-        const scalar_t weight = weights[i_b][i_hd][i_s][i];
-        sum += interpolated * weight;
+        // Compute gradients for the weights.
+        atomicAdd(&weight_gradients[i_b][i_hd][i_s][i], interpolated * result_gradient);
       }
     }
-    results[i_b][i_hd][i_s][i_c] = sum;
   }
 }
 

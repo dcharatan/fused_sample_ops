@@ -18,9 +18,16 @@ def run_comparison(make_single_sample, image_2x2, single_weight):
         Float[Tensor, "batch head sample_independent channel"],
     ]:
         sample = make_single_sample(x, y)
-        expected = fused_grid_sum(image_2x2, sample, single_weight)
-        actual = fused_grid_sum_torch(image_2x2, sample, single_weight)
-        assert torch.allclose(expected, actual, atol=5e-5)
+
+        image_expected = image_2x2.clone().requires_grad_(True)
+        expected = fused_grid_sum(image_expected, sample, single_weight)
+        expected.sum().backward()
+
+        image_actual = image_2x2.clone().requires_grad_(True)
+        actual = fused_grid_sum_torch(image_actual, sample, single_weight)
+        actual.sum().backward()
+
+        assert torch.allclose(image_expected.grad, image_actual.grad, atol=5e-5)
 
     return _run_comparison
 

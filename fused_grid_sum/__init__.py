@@ -26,7 +26,12 @@ class FusedGridSum(Function):
         # Create an empty tensor for the result.
         b, c, _, _ = images.shape
         _, hd, s, _ = weights.shape
-        result = torch.empty((b, hd, s, c), dtype=images.dtype, device=images.device)
+        result = torch.empty(
+            (b, hd, s, c),
+            dtype=images.dtype,
+            device=images.device,
+            requires_grad=images.requires_grad or weights.requires_grad,
+        )
 
         _cuda.forward(result, images, samples, weights)
 
