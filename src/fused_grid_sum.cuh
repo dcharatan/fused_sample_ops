@@ -113,7 +113,56 @@ __global__ void backward_kernel(
 
   const int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
   if (thread_index < num_threads) {
-    // TBD
+    // Unravel the thread index.
+    const int32_t i_b = (thread_index / results.stride(0)) % b;
+    const int32_t i_hd = (thread_index / results.stride(1)) % hd;
+    const int32_t i_s = (thread_index / results.stride(2)) % s;
+    const int32_t i_c = (thread_index / results.stride(3)) % c;
+
+    // Sum over the sample_summed dimension.
+    const int32_t sample_summed = weights.size(3);
+    const int32_t height = images.size(2);
+    const int32_t width = images.size(3);
+    scalar_t sum = 0;
+    for (int32_t i = 0; i < sample_summed; i++) {
+      // Get X and Y. To match the convention in torch.nn.functional.grid_sample,
+      // we assume that samples are in range [-1, 1].
+      const scalar_t x = (samples[i_b][i_s][i][0] * 0.5 + 0.5) * width + 0.5;
+      const scalar_t y = (samples[i_b][i_s][i][1] * 0.5 + 0.5) * height + 0.5;
+
+      // Only add to the sum if both the width and height are in bounds.
+      if (0 <= x && x < width + 1 && 0 <= y && y < height + 1) {
+        const int32_t col = static_cast<int32_t>(x) - 1;
+        const int32_t row = static_cast<int32_t>(y) - 1;
+        const scalar_t row_fraction = fmod(y, 1);
+        const scalar_t col_fraction = fmod(x, 1);
+
+        const int32_t row_n = row + 1;
+        const int32_t col_n = col + 1;
+
+        const scalar_t top_left =
+            (row == -1 || col == -1) ? 0 : images[i_b][i_c][row][col];
+        const scalar_t top_right =
+            (row == -1 || col_n == width) ? 0 : images[i_b][i_c][row][col_n];
+        const scalar_t bottom_left =
+            (row_n == height || col == -1) ? 0 : images[i_b][i_c][row_n][col];
+        const scalar_t bottom_right =
+            (row_n == height || col_n == width) ? 0 : images[i_b][i_c][row_n][col_n];
+
+        // Run horizontal linear interpolation.
+        const scalar_t top = top_left * (1 - col_fraction) + col_fraction * top_right;
+        const scalar_t bottom =
+            bottom_left * (1 - col_fraction) + col_fraction * bottom_right;
+
+        // Run vertical linear interpolation.
+        const scalar_t interpolated = top * (1 - row_fraction) + bottom * row_fraction;
+
+        // Multiply by the corresponding weight and sum.
+        const scalar_t weight = weights[i_b][i_hd][i_s][i];
+        sum += interpolated * weight;
+      }
+    }
+    results[i_b][i_hd][i_s][i_c] = sum;
   }
 }
 
