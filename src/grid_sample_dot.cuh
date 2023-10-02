@@ -91,7 +91,20 @@ __launch_bounds__(256) __global__ void grid_sample_dot_forward_kernel(
     for (; c < C_images; c++) {
       // Add a positional encoding channel to the dot product.
       const scalar_t phase = use_cos ? PI * 0.5 : 0;
-      dot_product += sin(depth * frequency + phase);
+      const scalar_t query = sin(depth * frequency + phase);
+
+      if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
+        dot_product += images[b][c][iy_nw][ix_nw] * nw * query;
+      }
+      if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
+        dot_product += images[b][c][iy_ne][ix_ne] * ne * query;
+      }
+      if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
+        dot_product += images[b][c][iy_sw][ix_sw] * sw * query;
+      }
+      if (within_bounds_2d(iy_se, ix_se, H, W)) {
+        dot_product += images[b][c][iy_se][ix_se] * se * query;
+      }
 
       // Update the positional encoding parameters.
       if (use_cos) {
@@ -181,7 +194,20 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
     for (; c < C_images; c++) {
       // Add a positional encoding channel to the dot product.
       const scalar_t phase = use_cos ? PI * 0.5 : 0;
-      dot_product += sin(depth * frequency + phase);
+      const scalar_t query = sin(depth * frequency + phase);
+
+      if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
+        dot_product += images[b][c][iy_nw][ix_nw] * nw * query;
+      }
+      if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
+        dot_product += images[b][c][iy_ne][ix_ne] * ne * query;
+      }
+      if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
+        dot_product += images[b][c][iy_sw][ix_sw] * sw * query;
+      }
+      if (within_bounds_2d(iy_se, ix_se, H, W)) {
+        dot_product += images[b][c][iy_se][ix_se] * se * query;
+      }
 
       // Update the positional encoding parameters.
       if (use_cos) {
