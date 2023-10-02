@@ -1,4 +1,3 @@
-#include <iostream>
 #include "fused_grid_sum.cuh"
 
 constexpr int BLOCK_SIZE = 512;
