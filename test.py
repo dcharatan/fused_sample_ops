@@ -8,7 +8,7 @@ with install_import_hook(
     ("src",),
     ("beartype", "beartype"),
 ):
-    from fused_grid_sum import fused_grid_sum, grid_sample_dot
+    from fused_grid_sum import fused_grid_sum, grid_sample_dot, grid_sample_dot_torch
     from tests.fused_grid_sum_torch import fused_grid_sum_torch
 
 
@@ -19,16 +19,14 @@ if __name__ == "__main__":
     c = 128
     h = 129
     w = 130
-    s = 131
-    s2 = 132
-    hd = 8
+    s = 128 * 64
 
     def rand(x):
         return torch.rand(x, dtype=torch.float32, device=device)
 
     images = rand((b, c, h, w))
-    samples = 2.5 * rand((b, s, s2, 2)) - 1.25
-    weights = rand((b, hd, s, s2))
+    samples = 2.5 * rand((b, s, 2)) - 1.25
+    queries = rand((b, s, c))
 
     # test forward pass
     custom_time = 0
@@ -37,17 +35,11 @@ if __name__ == "__main__":
         for _ in trange(500):
             torch.cuda.synchronize()
             start = time()
-            custom = grid_sample_dot(images, samples)
+            custom = grid_sample_dot(images, samples, queries)
             torch.cuda.synchronize()
             custom_time += time() - start
             start = time()
-            original = torch.nn.functional.grid_sample(
-                images,
-                samples,
-                mode="bilinear",
-                padding_mode="zeros",
-                align_corners=False,
-            )
+            original = grid_sample_dot_torch(images, samples, queries)
             torch.cuda.synchronize()
             torch_time += time() - start
     assert torch.allclose(custom, original)

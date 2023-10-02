@@ -6,6 +6,7 @@ from torch.autograd.function import FunctionCtx, once_differentiable
 
 from . import _cuda
 from .grid_sample_dot import grid_sample_dot  # noqa: F401
+from .grid_sample_dot_torch import grid_sample_dot_torch  # noqa: F401
 
 TypeImages = Float[Tensor, "batch channel height width"]
 TypeSamples = Float[Tensor, "batch sample_independent sample_summed 2"]
