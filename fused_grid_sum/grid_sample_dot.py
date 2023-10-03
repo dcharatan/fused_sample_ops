@@ -54,9 +54,9 @@ class FusedSampleDot(Function):
         # Retrieve the inputs to the forward pass.
         images, samples, queries, depths = ctx.saved_tensors
 
-        # Create empty tensors for the gradients. Note that we don't return a gradient
-        # for the sample X/Y locations, since we don't need it.
+        # Create zero tensors for the gradients.
         image_gradients = torch.zeros_like(images)
+        sample_gradients = torch.zeros_like(samples)
         query_gradients = torch.zeros_like(queries)
         depth_gradients = torch.zeros_like(depths)
 
@@ -67,6 +67,7 @@ class FusedSampleDot(Function):
             queries,
             depths,
             image_gradients,
+            sample_gradients,
             query_gradients,
             depth_gradients,
         )

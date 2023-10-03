@@ -15,6 +15,7 @@ with install_import_hook(
 if __name__ == "__main__":
     device = torch.device("cuda:0")
 
+    NUM_TESTS = 100
     B = 8
     C_QUERIES = 128
     H = 128
@@ -26,7 +27,7 @@ if __name__ == "__main__":
     C_IMAGES = C_QUERIES + 2 * NUM_OCTAVES
 
     def rand(x):
-        return torch.rand(x, dtype=torch.float32, device=device)
+        return torch.rand(x, dtype=torch.float64, device=device)
 
     images = rand((B, C_IMAGES, H, W))
     samples = 2.5 * rand((B, Q, D, 2)) - 1.25
@@ -38,15 +39,16 @@ if __name__ == "__main__":
     backward_time_fused = 0
     forward_time_torch = 0
     backward_time_torch = 0
-    for _ in trange(500):
+    for _ in trange(NUM_TESTS):
         torch.cuda.synchronize()
         images_fused = images.clone().requires_grad_(True)
+        samples_fused = samples.clone().requires_grad_(True)
         queries_fused = queries.clone().requires_grad_(True)
         depths_fused = depths.clone().requires_grad_(True)
         start = time()
         result_fused = grid_sample_dot(
             images_fused,
-            samples,
+            samples_fused,
             queries_fused,
             depths_fused,
             NUM_OCTAVES,
@@ -59,12 +61,13 @@ if __name__ == "__main__":
 
         torch.cuda.synchronize()
         images_torch = images.clone().requires_grad_(True)
+        samples_torch = samples.clone().requires_grad_(True)
         queries_torch = queries.clone().requires_grad_(True)
         depths_torch = depths.clone().requires_grad_(True)
         start = time()
         result_torch = grid_sample_dot_torch(
             images_torch,
-            samples,
+            samples_torch,
             queries_torch,
             depths_torch,
             NUM_OCTAVES,
@@ -77,6 +80,7 @@ if __name__ == "__main__":
 
         assert torch.allclose(result_fused, result_torch)
         assert torch.allclose(images_fused.grad, images_torch.grad, atol=5e-5)
+        assert torch.allclose(samples_torch.grad, samples_torch.grad, atol=5e-5)
         assert torch.allclose(queries_fused.grad, queries_torch.grad, atol=5e-5)
         assert torch.allclose(depths_fused.grad, depths_torch.grad, atol=5e-5)
 

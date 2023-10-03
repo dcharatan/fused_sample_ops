@@ -18,6 +18,7 @@ void grid_sample_dot_backward(torch::Tensor result_gradients,
                               torch::Tensor queries,
                               torch::Tensor depths,
                               torch::Tensor image_gradients,
+                              torch::Tensor sample_gradients,
                               torch::Tensor query_gradients,
                               torch::Tensor depth_gradients);
 
@@ -128,6 +129,8 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
     const torch::PackedTensorAccessor32<scalar_t, 3, torch::RestrictPtrTraits> depths,
     torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits>
         image_gradients,
+    torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits>
+        sample_gradients,
     torch::PackedTensorAccessor32<scalar_t, 3, torch::RestrictPtrTraits>
         query_gradients,
     torch::PackedTensorAccessor32<scalar_t, 3, torch::RestrictPtrTraits>
@@ -145,6 +148,9 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
     const index_t b = index / (Q * D);
     const index_t q = (index / D) % Q;
     const index_t d = index % D;
+
+    scalar_t sample_gradient_x = 0;
+    scalar_t sample_gradient_y = 0;
 
     // Get image coordinates in pixel space.
     scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
@@ -177,21 +183,33 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
         const scalar_t pixel_nw = images[b][c][iy_nw][ix_nw];
         query_gradient += pixel_nw * nw;
         atomicAdd(&image_gradients[b][c][iy_nw][ix_nw], result_gradient * nw * query);
+        const scalar_t pixel_nw_query = pixel_nw * query;
+        sample_gradient_x -= pixel_nw_query * (iy_se - iy);
+        sample_gradient_y -= pixel_nw_query * (ix_se - ix);
       }
       if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
         const scalar_t pixel_ne = images[b][c][iy_ne][ix_ne];
         query_gradient += pixel_ne * ne;
         atomicAdd(&image_gradients[b][c][iy_ne][ix_ne], result_gradient * ne * query);
+        const scalar_t pixel_ne_query = pixel_ne * query;
+        sample_gradient_x += pixel_ne_query * (iy_sw - iy);
+        sample_gradient_y -= pixel_ne_query * (ix - ix_sw);
       }
       if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
         const scalar_t pixel_sw = images[b][c][iy_sw][ix_sw];
         query_gradient += pixel_sw * sw;
         atomicAdd(&image_gradients[b][c][iy_sw][ix_sw], result_gradient * sw * query);
+        const scalar_t pixel_sw_query = pixel_sw * query;
+        sample_gradient_x -= pixel_sw_query * (iy - iy_ne);
+        sample_gradient_y += pixel_sw_query * (ix_ne - ix);
       }
       if (within_bounds_2d(iy_se, ix_se, H, W)) {
         const scalar_t pixel_se = images[b][c][iy_se][ix_se];
         query_gradient += pixel_se * se;
         atomicAdd(&image_gradients[b][c][iy_se][ix_se], result_gradient * se * query);
+        const scalar_t pixel_se_query = pixel_se * query;
+        sample_gradient_x += pixel_se_query * (iy - iy_nw);
+        sample_gradient_y += pixel_se_query * (ix - ix_nw);
       }
 
       atomicAdd(&query_gradients[b][q][c], result_gradient * query_gradient);
@@ -210,20 +228,32 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
       const scalar_t query_gradient = frequency * cos(depth * frequency + phase);
 
       if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
-        depth_gradient += query_gradient * nw * images[b][c][iy_nw][ix_nw];
+        const scalar_t pixel_nw_query = images[b][c][iy_nw][ix_nw] * query_gradient;
+        depth_gradient += nw * pixel_nw_query;
         atomicAdd(&image_gradients[b][c][iy_nw][ix_nw], result_gradient * nw * query);
+        sample_gradient_x -= pixel_nw_query * (iy_se - iy);
+        sample_gradient_y -= pixel_nw_query * (ix_se - ix);
       }
       if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
-        depth_gradient += query_gradient * ne * images[b][c][iy_ne][ix_ne];
+        const scalar_t pixel_ne_query = images[b][c][iy_ne][ix_ne] * query_gradient;
+        depth_gradient += ne * pixel_ne_query;
         atomicAdd(&image_gradients[b][c][iy_ne][ix_ne], result_gradient * ne * query);
+        sample_gradient_x += pixel_ne_query * (iy_sw - iy);
+        sample_gradient_y -= pixel_ne_query * (ix - ix_sw);
       }
       if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
-        depth_gradient += query_gradient * sw * images[b][c][iy_sw][ix_sw];
+        const scalar_t pixel_sw_query = images[b][c][iy_sw][ix_sw] * query_gradient;
+        depth_gradient += sw * pixel_sw_query;
         atomicAdd(&image_gradients[b][c][iy_sw][ix_sw], result_gradient * sw * query);
+        sample_gradient_x -= pixel_sw_query * (iy - iy_ne);
+        sample_gradient_y += pixel_sw_query * (ix_ne - ix);
       }
       if (within_bounds_2d(iy_se, ix_se, H, W)) {
-        depth_gradient += query_gradient * se * images[b][c][iy_se][ix_se];
+        const scalar_t pixel_se_query = images[b][c][iy_se][ix_se] * query_gradient;
+        depth_gradient += se * pixel_se_query;
         atomicAdd(&image_gradients[b][c][iy_se][ix_se], result_gradient * se * query);
+        sample_gradient_x += pixel_se_query * (iy - iy_nw);
+        sample_gradient_y += pixel_se_query * (ix - ix_nw);
       }
 
       // Update the positional encoding parameters.
@@ -233,6 +263,8 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
       use_cos = !use_cos;
     }
     atomicAdd(&depth_gradients[b][q][d], result_gradient * depth_gradient);
+    atomicAdd(&sample_gradients[b][q][d][0], sample_gradient_x);
+    atomicAdd(&sample_gradients[b][q][d][1], sample_gradient_y);
   }
 }
 

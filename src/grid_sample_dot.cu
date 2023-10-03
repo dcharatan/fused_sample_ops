@@ -35,6 +35,7 @@ void fused_grid_sum::grid_sample_dot_backward(torch::Tensor result_gradients,
                                               torch::Tensor queries,
                                               torch::Tensor depths,
                                               torch::Tensor image_gradients,
+                                              torch::Tensor sample_gradients,
                                               torch::Tensor query_gradients,
                                               torch::Tensor depth_gradients) {
   // We assume that 32-bit indexing can be used and that only float32 and float64 are
@@ -56,6 +57,8 @@ void fused_grid_sum::grid_sample_dot_backward(torch::Tensor result_gradients,
                   queries.packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>(),
                   depths.packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>(),
                   image_gradients
+                      .packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  sample_gradients
                       .packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   query_gradients
                       .packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>(),
