@@ -4,12 +4,12 @@ from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 setup(
-    name="fused_grid_sum",
-    packages=["fused_grid_sum"],
+    name="fused_grid_ops",
+    packages=["fused_grid_ops"],
     install_requires=["torch", "jaxtyping"],
     ext_modules=[
         CUDAExtension(
-            name="fused_grid_sum._cuda",
+            name="fused_grid_ops._cuda",
             sources=[
                 "src/extension.cu",
                 "src/sample_dot.cu",

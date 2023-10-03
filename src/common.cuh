@@ -3,7 +3,7 @@
 // These functions are adapted or taken directly from the PyTorch functions here:
 // https://github.com/pytorch/pytorch/blob/7e6cf04a843a645c662ffb2eb4334ed84da97f01/aten/src/ATen/cuda/detail/KernelUtils.h
 
-namespace fused_grid_sum {
+namespace fused_grid_ops {
 
 inline int get_blocks(const int64_t N, const int64_t max_threads_per_block) {
   auto block_num = (N - 1) / max_threads_per_block + 1;
@@ -36,4 +36,4 @@ __device__ __forceinline__ bool within_bounds_2d(int64_t h,
   return h >= 0 && h < H && w >= 0 && w < W;
 }
 
-}  // namespace fused_grid_sum
+}  // namespace fused_grid_ops

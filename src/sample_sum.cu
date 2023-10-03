@@ -3,7 +3,7 @@
 
 constexpr int BLOCK_SIZE = 256;
 
-void fused_grid_sum::sample_sum_forward(torch::Tensor images,
+void fused_grid_ops::sample_sum_forward(torch::Tensor images,
                                         torch::Tensor samples,
                                         torch::Tensor weights,
                                         torch::Tensor outputs) {
@@ -27,7 +27,7 @@ void fused_grid_sum::sample_sum_forward(torch::Tensor images,
   }
 }
 
-void fused_grid_sum::sample_sum_backward(torch::Tensor output_gradients,
+void fused_grid_ops::sample_sum_backward(torch::Tensor output_gradients,
                                          torch::Tensor images,
                                          torch::Tensor samples,
                                          torch::Tensor weights,

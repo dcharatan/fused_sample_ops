@@ -8,10 +8,10 @@ with install_import_hook(
     ("src",),
     ("beartype", "beartype"),
 ):
-    from fused_grid_sum.sample_dot_fused import sample_dot_fused
-    from fused_grid_sum.sample_dot_torch import sample_dot_torch
-    from fused_grid_sum.sample_sum_fused import sample_sum_fused
-    from fused_grid_sum.sample_sum_torch import sample_sum_torch
+    from fused_grid_ops.sample_dot_fused import sample_dot_fused
+    from fused_grid_ops.sample_dot_torch import sample_dot_torch
+    from fused_grid_ops.sample_sum_fused import sample_sum_fused
+    from fused_grid_ops.sample_sum_torch import sample_sum_torch
 
 
 if __name__ == "__main__":
