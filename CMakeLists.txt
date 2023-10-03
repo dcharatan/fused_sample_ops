@@ -20,6 +20,7 @@ add_library(_cuda SHARED
 	src/extension.cu
 	src/fused_grid_sum.cu
 	src/sample_dot.cu
+	src/sample_sum.cu
 )
 
 # This workaround is needed to avoid linking errors (undefined symbols).

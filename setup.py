@@ -14,6 +14,7 @@ setup(
                 "src/extension.cu",
                 "src/fused_grid_sum.cu",
                 "src/sample_dot.cu",
+                "src/sample_sum.cu",
             ],
             extra_compile_args={
                 "nvcc": [

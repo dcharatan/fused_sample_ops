@@ -1,0 +1,62 @@
+#include "common.cuh"
+#include "sample_sum.cuh"
+
+constexpr int BLOCK_SIZE = 256;
+
+void fused_grid_sum::sample_sum_forward(torch::Tensor images,
+                                        torch::Tensor samples,
+                                        torch::Tensor weights,
+                                        torch::Tensor outputs) {
+  // We assume that 32-bit indexing can be used and that only float32 and float64 are
+  // supported.
+  int B = weights.size(0);
+  int H = weights.size(1);
+  int Q = weights.size(2);
+  int num_threads = B * H * Q;
+  if (num_threads > 0) {
+    AT_DISPATCH_FLOATING_TYPES(
+        images.scalar_type(), "sample_sum_forward", ([&] {
+          sample_sum_forward_kernel<scalar_t>
+              <<<get_blocks(num_threads, BLOCK_SIZE), BLOCK_SIZE>>>(
+                  num_threads,
+                  images.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  samples.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  weights.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  outputs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>());
+        }));
+  }
+}
+
+void fused_grid_sum::sample_sum_backward(torch::Tensor output_gradients,
+                                         torch::Tensor images,
+                                         torch::Tensor samples,
+                                         torch::Tensor weights,
+                                         torch::Tensor image_gradients,
+                                         torch::Tensor sample_gradients,
+                                         torch::Tensor weight_gradients) {
+  // We assume that 32-bit indexing can be used and that only float32 and float64 are
+  // supported. We also assume that all tensors (except samples) need a gradient.
+  int B = weights.size(0);
+  int H = weights.size(1);
+  int Q = weights.size(2);
+  int num_threads = B * H * Q;
+  if (num_threads > 0) {
+    AT_DISPATCH_FLOATING_TYPES(
+        images.scalar_type(), "sample_sum_backward", ([&] {
+          sample_sum_backward_kernel<scalar_t>
+              <<<get_blocks(num_threads, BLOCK_SIZE), BLOCK_SIZE>>>(
+                  num_threads,
+                  output_gradients
+                      .packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  images.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  samples.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  weights.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  image_gradients
+                      .packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  sample_gradients
+                      .packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  weight_gradients
+                      .packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>());
+        }));
+  }
+}
