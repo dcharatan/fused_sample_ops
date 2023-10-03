@@ -75,7 +75,7 @@ class FusedSampleDot(Function):
         return image_gradients, sample_gradients, query_gradients, depth_gradients, None
 
 
-_sample_dot = FusedSampleDot.apply
+_fused_sample_dot = FusedSampleDot.apply
 
 
 def sample_dot(
@@ -88,4 +88,4 @@ def sample_dot(
     """Compute a fused combination of torch.nn.functional.grid_sample and dot product.
     This function only supports gradients for images and queries (not samples).
     """
-    return _sample_dot(images, samples, queries, depths, num_octaves)
+    return _fused_sample_dot(images, samples, queries, depths, num_octaves)
