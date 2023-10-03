@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from einops import einsum, rearrange, repeat
 
-from .sample_dot import (
+from .sample_dot_fused import (
     TypeDepths,
     TypeImages,
     TypeQueries,

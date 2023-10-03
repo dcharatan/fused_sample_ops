@@ -12,7 +12,7 @@ TypeWeights = Float[Tensor, "batch head query depth"]
 TypeResults = Float[Tensor, "batch head query channel"]
 
 
-class FusedSampleSum(Function):
+class SampleSumFused(Function):
     @staticmethod
     def forward(
         ctx: FunctionCtx,
@@ -68,15 +68,15 @@ class FusedSampleSum(Function):
         return image_gradients, sample_gradients, weight_gradients
 
 
-_fused_sample_sum = FusedSampleSum.apply
+_sample_sum_fused = SampleSumFused.apply
 
 
-def fused_sample_sum(
+def sample_sum_fused(
     images: TypeImages,
     samples: TypeSamples,
     weights: TypeWeights,
 ) -> TypeResults:
     """Compute a fused combination of torch.nn.functional.grid_sample and summation
-    across the sample_summed dimension.
+    across the depth dimension.
     """
-    return _fused_sample_sum(images, samples, weights)
+    return _sample_sum_fused(images, samples, weights)

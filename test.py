@@ -8,8 +8,8 @@ with install_import_hook(
     ("src",),
     ("beartype", "beartype"),
 ):
-    from fused_grid_sum import fused_grid_sum, sample_dot, sample_dot_torch
-    from tests.fused_grid_sum_torch import fused_grid_sum_torch
+    from fused_grid_sum.sample_dot_fused import sample_dot_fused
+    from fused_grid_sum.sample_dot_torch import sample_dot_torch
 
 
 if __name__ == "__main__":
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         queries_fused = queries.clone().requires_grad_(True)
         depths_fused = depths.clone().requires_grad_(True)
         start = time()
-        result_fused = sample_dot(
+        result_fused = sample_dot_fused(
             images_fused,
             samples_fused,
             queries_fused,

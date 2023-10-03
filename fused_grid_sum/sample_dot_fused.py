@@ -13,7 +13,7 @@ TypeDepths = Float[Tensor, "batch query depth"]
 TypeResults = Float[Tensor, "batch query depth"]
 
 
-class FusedSampleDot(Function):
+class SampleDotFused(Function):
     @staticmethod
     def forward(
         ctx: FunctionCtx,
@@ -75,10 +75,10 @@ class FusedSampleDot(Function):
         return image_gradients, sample_gradients, query_gradients, depth_gradients, None
 
 
-_fused_sample_dot = FusedSampleDot.apply
+_sample_dot_fused = SampleDotFused.apply
 
 
-def sample_dot(
+def sample_dot_fused(
     images: TypeImages,
     samples: TypeSamples,
     queries: TypeQueries,
@@ -88,4 +88,4 @@ def sample_dot(
     """Compute a fused combination of torch.nn.functional.grid_sample and dot product.
     This function only supports gradients for images and queries (not samples).
     """
-    return _fused_sample_dot(images, samples, queries, depths, num_octaves)
+    return _sample_dot_fused(images, samples, queries, depths, num_octaves)
