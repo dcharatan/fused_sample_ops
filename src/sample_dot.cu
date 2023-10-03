@@ -3,7 +3,7 @@
 
 constexpr int BLOCK_SIZE = 256;
 
-void fused_grid_ops::sample_dot_forward(torch::Tensor images,
+void fused_sample_ops::sample_dot_forward(torch::Tensor images,
                                         torch::Tensor samples,
                                         torch::Tensor queries,
                                         torch::Tensor depths,
@@ -30,7 +30,7 @@ void fused_grid_ops::sample_dot_forward(torch::Tensor images,
   }
 }
 
-void fused_grid_ops::sample_dot_backward(torch::Tensor output_gradients,
+void fused_sample_ops::sample_dot_backward(torch::Tensor output_gradients,
                                          torch::Tensor images,
                                          torch::Tensor samples,
                                          torch::Tensor queries,

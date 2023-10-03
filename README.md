@@ -1,4 +1,4 @@
-# fused_grid_ops
+# fused_sample_ops
 
 This repository contains fused CUDA kernels for the following operations:
 
@@ -76,6 +76,6 @@ Inside VS Code, run `CMake: Configure` and then `CMake: Build`. You may want to 
 
 To install this package, do `python3 setup.py install` from the project root directory. To build without installing, run `python3 setup.py develop`. This will create `_cuda.<stuff>.so`.
 
-### Importing `fused_grid_ops`
+### Importing `fused_sample_ops`
 
-Once the `.so` file is created in the `fused_grid_ops` directory (using CMake, you'll have to move it there manually), you can import `fused_grid_ops` and use the provided Python wrappers. These wrappers have `jaxtyping` annotations that ensure that the CUDA code is called correctly.
+Once the `.so` file is created in the `fused_sample_ops` directory (using CMake, you'll have to move it there manually), you can import `fused_sample_ops` and use the provided Python wrappers. These wrappers have `jaxtyping` annotations that ensure that the CUDA code is called correctly.

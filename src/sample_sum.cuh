@@ -4,7 +4,7 @@
 
 #include "common.cuh"
 
-namespace fused_grid_ops {
+namespace fused_sample_ops {
 
 void sample_sum_forward(torch::Tensor images,
                         torch::Tensor samples,
@@ -216,4 +216,4 @@ __launch_bounds__(256) __global__ void sample_sum_backward_kernel(
   }
 }
 
-}  // namespace fused_grid_ops
+}  // namespace fused_sample_ops

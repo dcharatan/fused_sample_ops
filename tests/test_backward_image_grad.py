@@ -3,9 +3,9 @@ import torch
 from jaxtyping import Float
 from torch import Tensor
 
-from ..fused_grid_ops import fused_grid_ops
+from ..fused_sample_ops import fused_sample_ops
 from .common import *  # noqa F403
-from .fused_grid_ops_torch import fused_grid_ops_torch
+from .fused_sample_ops_torch import fused_sample_ops_torch
 
 
 @pytest.fixture
@@ -20,11 +20,11 @@ def run_comparison(make_single_sample, image_2x2, single_weight):
         sample = make_single_sample(x, y)
 
         image_expected = image_2x2.clone().requires_grad_(True)
-        expected = fused_grid_ops(image_expected, sample, single_weight)
+        expected = fused_sample_ops(image_expected, sample, single_weight)
         expected.sum().backward()
 
         image_actual = image_2x2.clone().requires_grad_(True)
-        actual = fused_grid_ops_torch(image_actual, sample, single_weight)
+        actual = fused_sample_ops_torch(image_actual, sample, single_weight)
         actual.sum().backward()
 
         assert torch.allclose(image_expected.grad, image_actual.grad, atol=5e-5)

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
-project(fused_grid_ops LANGUAGES CXX CUDA)
+project(fused_sample_ops LANGUAGES CXX CUDA)
 
 # Connect the project to Python.
 find_package(Python COMPONENTS Development)
