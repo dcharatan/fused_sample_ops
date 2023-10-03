@@ -72,7 +72,7 @@ class FusedSampleDot(Function):
             depth_gradients,
         )
 
-        return image_gradients, None, query_gradients, depth_gradients, None
+        return image_gradients, sample_gradients, query_gradients, depth_gradients, None
 
 
 _sample_dot = FusedSampleDot.apply
