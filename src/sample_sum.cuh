@@ -149,6 +149,7 @@ __launch_bounds__(256) __global__ void sample_sum_backward_kernel(
         const scalar_t pixel_nw_weight = pixel_nw * weight;
         sample_gradient_x -= pixel_nw_weight * (iy_se - iy);
         sample_gradient_y -= pixel_nw_weight * (ix_se - ix);
+        atomicAdd(&image_gradients[b][c][iy_nw][ix_nw], output_gradient * nw * weight);
       }
       if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
         const scalar_t pixel_ne = images[b][c][iy_ne][ix_ne];
@@ -156,6 +157,7 @@ __launch_bounds__(256) __global__ void sample_sum_backward_kernel(
         const scalar_t pixel_ne_weight = pixel_ne * weight;
         sample_gradient_x += pixel_ne_weight * (iy_sw - iy);
         sample_gradient_y -= pixel_ne_weight * (ix - ix_sw);
+        atomicAdd(&image_gradients[b][c][iy_ne][ix_ne], output_gradient * ne * weight);
       }
       if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
         const scalar_t pixel_sw = images[b][c][iy_sw][ix_sw];
@@ -163,6 +165,7 @@ __launch_bounds__(256) __global__ void sample_sum_backward_kernel(
         const scalar_t pixel_sw_weight = pixel_sw * weight;
         sample_gradient_x -= pixel_sw_weight * (iy - iy_ne);
         sample_gradient_y += pixel_sw_weight * (ix_ne - ix);
+        atomicAdd(&image_gradients[b][c][iy_sw][ix_sw], output_gradient * sw * weight);
       }
       if (within_bounds_2d(iy_se, ix_se, H, W)) {
         const scalar_t pixel_se = images[b][c][iy_se][ix_se];
@@ -170,6 +173,7 @@ __launch_bounds__(256) __global__ void sample_sum_backward_kernel(
         const scalar_t pixel_se_weight = pixel_se * weight;
         sample_gradient_x += pixel_se_weight * (iy - iy_nw);
         sample_gradient_y += pixel_se_weight * (ix - ix_nw);
+        atomicAdd(&image_gradients[b][c][iy_se][ix_se], output_gradient * se * weight);
       }
 
       // Add to the sample gradients.
