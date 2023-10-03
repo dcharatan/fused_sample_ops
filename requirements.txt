@@ -3,3 +3,4 @@ ruff
 jaxtyping
 einops
 pytest
+tqdm
