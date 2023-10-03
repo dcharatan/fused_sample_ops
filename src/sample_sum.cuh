@@ -134,15 +134,15 @@ __launch_bounds__(256) __global__ void sample_sum_backward_kernel(
     const scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
     const scalar_t se = (ix - ix_nw) * (iy - iy_nw);
 
+    const bool nw_in_bounds = within_bounds_2d(iy_nw, ix_nw, H, W);
+    const bool ne_in_bounds = within_bounds_2d(iy_ne, ix_ne, H, W);
+    const bool sw_in_bounds = within_bounds_2d(iy_sw, ix_sw, H, W);
+    const bool se_in_bounds = within_bounds_2d(iy_se, ix_se, H, W);
+
     scalar_t sample_gradient_x = 0;
     scalar_t sample_gradient_y = 0;
 
     for (index_t c = 0; c < C; c++) {
-      const bool nw_in_bounds = within_bounds_2d(iy_nw, ix_nw, H, W);
-      const bool ne_in_bounds = within_bounds_2d(iy_ne, ix_ne, H, W);
-      const bool sw_in_bounds = within_bounds_2d(iy_sw, ix_sw, H, W);
-      const bool se_in_bounds = within_bounds_2d(iy_se, ix_se, H, W);
-
       const scalar_t pixel_nw = nw_in_bounds ? images[b][c][iy_nw][ix_nw] : 0;
       const scalar_t pixel_ne = ne_in_bounds ? images[b][c][iy_ne][ix_ne] : 0;
       const scalar_t pixel_sw = sw_in_bounds ? images[b][c][iy_sw][ix_sw] : 0;
