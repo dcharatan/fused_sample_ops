@@ -86,7 +86,5 @@ def sample_dot_fused(
     depths: TypeDepths,
     num_octaves: int,
 ) -> TypeOutputs:
-    """Compute a fused combination of torch.nn.functional.grid_sample and dot product.
-    This function only supports gradients for images and queries (not samples).
-    """
+    """Compute a fused combination of torch.nn.functional.grid_sample and dot product."""
     return _sample_dot_fused(images, samples, queries, depths, num_octaves)
