@@ -35,7 +35,8 @@ void fused_grid_sum::sample_sum_backward(torch::Tensor output_gradients,
                                          torch::Tensor sample_gradients,
                                          torch::Tensor weight_gradients) {
   // We assume that 32-bit indexing can be used and that only float32 and float64 are
-  // supported. We also assume that all tensors (except samples) need a gradient.
+  // supported. Note that we parallelize over different dimensions than in the forward
+  // pass, since the backward pass has no dependency between depths.
   int B = weights.size(0);
   int Q = weights.size(2);
   int D = weights.size(3);
