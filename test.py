@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
         assert torch.allclose(result_fused, result_torch)
         assert torch.allclose(images_fused.grad, images_torch.grad, atol=5e-5)
-        assert torch.allclose(samples_torch.grad, samples_torch.grad, atol=5e-5)
+        assert torch.allclose(samples_fused.grad, samples_torch.grad, atol=5e-5)
         assert torch.allclose(queries_fused.grad, queries_torch.grad, atol=5e-5)
         assert torch.allclose(depths_fused.grad, depths_torch.grad, atol=5e-5)
 
