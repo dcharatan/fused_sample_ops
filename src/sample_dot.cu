@@ -22,9 +22,9 @@ void fused_grid_sum::sample_dot_forward(torch::Tensor images,
                   num_threads,
                   images.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   samples.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
-                  queries.packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>(),
+                  queries.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   depths.packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>(),
-                  outputs.packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>());
+                  outputs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>());
         }));
   }
 }

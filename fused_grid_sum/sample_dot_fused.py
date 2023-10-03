@@ -8,9 +8,9 @@ from . import _cuda
 
 TypeImages = Float[Tensor, "batch channel height width"]
 TypeSamples = Float[Tensor, "batch query depth 2"]
-TypeQueries = Float[Tensor, "batch query channel-2*num_octaves"]
+TypeQueries = Float[Tensor, "batch head query channel-2*num_octaves"]
 TypeDepths = Float[Tensor, "batch query depth"]
-TypeOutputs = Float[Tensor, "batch query depth"]
+TypeOutputs = Float[Tensor, "batch head query depth"]
 
 
 class SampleDotFused(Function):
@@ -24,19 +24,20 @@ class SampleDotFused(Function):
         num_octaves: int,
     ) -> TypeOutputs:
         _, c_images, _, _ = images.shape
-        _, _, c_queries = queries.shape
+        _, hd, _, c_queries = queries.shape
+        b, q, d = depths.shape
         assert c_images - c_queries == 2 * num_octaves
 
         # Save the inputs for the backward pass.
         ctx.save_for_backward(images, samples, queries, depths)
 
         # Create an empty tensor for the outputs.
-        b, q, d = depths.shape
         outputs = torch.empty(
-            (b, q, d),
+            (b, hd, q, d),
             dtype=images.dtype,
             device=images.device,
             requires_grad=images.requires_grad
+            or samples.requires_grad
             or queries.requires_grad
             or depths.requires_grad,
         )

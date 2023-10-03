@@ -36,13 +36,15 @@ def sample_dot_torch(
 
     # Positionally encode the depths.
     _, _, d = depths.shape
+    _, hd, _, _ = queries.shape
     frequencies = repeat(frequencies, "f -> () (f p) () ()", p=2)
     phases = repeat(phases, "p -> () (f p) () ()", f=num_octaves)
     depths = rearrange(depths, "b q d -> b () q d")
     depths = torch.sin(depths * frequencies + phases)
+    depths = repeat(depths, "b c q d -> b hd c q d", hd=hd)
 
     # Concatenate the positionally encoded depths onto the queries.
-    queries = repeat(queries, "b q c -> b c q d", d=d)
-    queries = torch.cat((queries, depths), dim=1)
+    queries = repeat(queries, "b hd q c -> b hd c q d", d=d)
+    queries = torch.cat((queries, depths), dim=2)
 
-    return einsum(samples, queries, "b c q d, b c q d -> b q d")
+    return einsum(samples, queries, "b c q d, b hd c q d -> b hd q d")
