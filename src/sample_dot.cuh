@@ -6,24 +6,24 @@
 
 namespace fused_grid_sum {
 
-void grid_sample_dot_forward(torch::Tensor images,
-                             torch::Tensor samples,
-                             torch::Tensor queries,
-                             torch::Tensor depths,
-                             torch::Tensor outputs);
+void sample_dot_forward(torch::Tensor images,
+                        torch::Tensor samples,
+                        torch::Tensor queries,
+                        torch::Tensor depths,
+                        torch::Tensor outputs);
 
-void grid_sample_dot_backward(torch::Tensor result_gradients,
-                              torch::Tensor images,
-                              torch::Tensor samples,
-                              torch::Tensor queries,
-                              torch::Tensor depths,
-                              torch::Tensor image_gradients,
-                              torch::Tensor sample_gradients,
-                              torch::Tensor query_gradients,
-                              torch::Tensor depth_gradients);
+void sample_dot_backward(torch::Tensor result_gradients,
+                         torch::Tensor images,
+                         torch::Tensor samples,
+                         torch::Tensor queries,
+                         torch::Tensor depths,
+                         torch::Tensor image_gradients,
+                         torch::Tensor sample_gradients,
+                         torch::Tensor query_gradients,
+                         torch::Tensor depth_gradients);
 
 template <typename scalar_t, typename index_t>
-__launch_bounds__(256) __global__ void grid_sample_dot_forward_kernel(
+__launch_bounds__(256) __global__ void sample_dot_forward_kernel(
     const index_t num_threads,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> images,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> samples,
@@ -119,7 +119,7 @@ __launch_bounds__(256) __global__ void grid_sample_dot_forward_kernel(
 }
 
 template <typename scalar_t, typename index_t>
-__launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
+__launch_bounds__(256) __global__ void sample_dot_backward_kernel(
     const index_t num_threads,
     const torch::PackedTensorAccessor32<scalar_t, 3, torch::RestrictPtrTraits>
         result_gradients,

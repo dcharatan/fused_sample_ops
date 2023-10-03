@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from einops import einsum, rearrange, repeat
 
-from .grid_sample_dot import (
+from .sample_dot import (
     TypeDepths,
     TypeImages,
     TypeQueries,
@@ -11,14 +11,14 @@ from .grid_sample_dot import (
 )
 
 
-def grid_sample_dot_torch(
+def sample_dot_torch(
     images: TypeImages,
     samples: TypeSamples,
     queries: TypeQueries,
     depths: TypeDepths,
     num_octaves: int,
 ) -> TypeResults:
-    """The non-fused equivalent of grid_sample_dot."""
+    """The non-fused equivalent of sample_dot."""
 
     samples = F.grid_sample(
         images,

@@ -19,7 +19,7 @@ set(CMAKE_CUDA_STANDARD 17)
 add_library(_cuda SHARED
 	src/extension.cu
 	src/fused_grid_sum.cu
-	src/grid_sample_dot.cu
+	src/sample_dot.cu
 )
 
 # This workaround is needed to avoid linking errors (undefined symbols).

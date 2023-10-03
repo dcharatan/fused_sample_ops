@@ -41,7 +41,7 @@ class FusedSampleDot(Function):
             or depths.requires_grad,
         )
 
-        _cuda.grid_sample_dot_forward(images, samples, queries, depths, outputs)
+        _cuda.sample_dot_forward(images, samples, queries, depths, outputs)
 
         return outputs
 
@@ -60,7 +60,7 @@ class FusedSampleDot(Function):
         query_gradients = torch.zeros_like(queries)
         depth_gradients = torch.zeros_like(depths)
 
-        _cuda.grid_sample_dot_backward(
+        _cuda.sample_dot_backward(
             result_gradients,
             images,
             samples,
@@ -75,10 +75,10 @@ class FusedSampleDot(Function):
         return image_gradients, None, query_gradients, depth_gradients, None
 
 
-_grid_sample_dot = FusedSampleDot.apply
+_sample_dot = FusedSampleDot.apply
 
 
-def grid_sample_dot(
+def sample_dot(
     images: TypeImages,
     samples: TypeSamples,
     queries: TypeQueries,
@@ -88,4 +88,4 @@ def grid_sample_dot(
     """Compute a fused combination of torch.nn.functional.grid_sample and dot product.
     This function only supports gradients for images and queries (not samples).
     """
-    return _grid_sample_dot(images, samples, queries, depths, num_octaves)
+    return _sample_dot(images, samples, queries, depths, num_octaves)
