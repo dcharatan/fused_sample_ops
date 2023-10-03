@@ -194,7 +194,7 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
         atomicAdd(&image_gradients[b][c][iy_se][ix_se], result_gradient * se * query);
       }
 
-      query_gradients[b][q][c] = result_gradient * query_gradient;
+      atomicAdd(&query_gradients[b][q][c], result_gradient * query_gradient);
     }
 
     // Accumulate image gradients and compute depth gradients.
@@ -210,19 +210,19 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
       const scalar_t query_gradient = frequency * cos(depth * frequency + phase);
 
       if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
-        depth_gradient += query_gradient * nw;
+        depth_gradient += query_gradient * nw * images[b][c][iy_nw][ix_nw];
         atomicAdd(&image_gradients[b][c][iy_nw][ix_nw], result_gradient * nw * query);
       }
       if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
-        depth_gradient += query_gradient * ne;
+        depth_gradient += query_gradient * ne * images[b][c][iy_ne][ix_ne];
         atomicAdd(&image_gradients[b][c][iy_ne][ix_ne], result_gradient * ne * query);
       }
       if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
-        depth_gradient += query_gradient * sw;
+        depth_gradient += query_gradient * sw * images[b][c][iy_sw][ix_sw];
         atomicAdd(&image_gradients[b][c][iy_sw][ix_sw], result_gradient * sw * query);
       }
       if (within_bounds_2d(iy_se, ix_se, H, W)) {
-        depth_gradient += query_gradient * se;
+        depth_gradient += query_gradient * se * images[b][c][iy_se][ix_se];
         atomicAdd(&image_gradients[b][c][iy_se][ix_se], result_gradient * se * query);
       }
 
@@ -232,7 +232,7 @@ __launch_bounds__(256) __global__ void grid_sample_dot_backward_kernel(
       }
       use_cos = !use_cos;
     }
-    depth_gradients[b][q][d] = depth_gradient;
+    atomicAdd(&depth_gradients[b][q][d], result_gradient * depth_gradient);
   }
 }
 
