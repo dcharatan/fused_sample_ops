@@ -32,61 +32,18 @@ if __name__ == "__main__":
     def rand(x):
         return torch.rand(x, dtype=torch.float64, device=device)
 
-    images = rand((B, C_IMAGES, H, W))
-    samples = 2.5 * rand((B, Q, D, 2)) - 1.25
-    weights = rand((B, HD, Q, D))
-
-    # test forward pass
-    forward_time_fused = 0
-    backward_time_fused = 0
-    forward_time_torch = 0
-    backward_time_torch = 0
-    for _ in trange(NUM_TESTS):
-        torch.cuda.synchronize()
-        images_fused = images.clone().requires_grad_(True)
-        samples_fused = samples.clone().requires_grad_(True)
-        weights_fused = weights.clone().requires_grad_(True)
-        start = time()
-        result_fused = sample_sum_fused(images_fused, samples_fused, weights_fused)
-        torch.cuda.synchronize()
-        forward_time_fused += time() - start
-        result_fused.sum().backward()
-        torch.cuda.synchronize()
-        backward_time_fused += time() - start
-
-        torch.cuda.synchronize()
-        images_torch = images.clone().requires_grad_(True)
-        samples_torch = samples.clone().requires_grad_(True)
-        weights_torch = weights.clone().requires_grad_(True)
-        start = time()
-        result_torch = sample_sum_torch(images_torch, samples_torch, weights_torch)
-        torch.cuda.synchronize()
-        forward_time_torch += time() - start
-        result_torch.sum().backward()
-        torch.cuda.synchronize()
-        backward_time_torch += time() - start
-
-        assert torch.allclose(result_fused, result_torch)
-        assert torch.allclose(images_fused.grad, images_torch.grad, atol=5e-5)
-        assert torch.allclose(samples_fused.grad, samples_torch.grad, atol=5e-5)
-        assert torch.allclose(weights_fused.grad, weights_torch.grad, atol=5e-5)
-
-    print(f"forward (fused): {forward_time_fused}")
-    print(f"forward (torch): {forward_time_torch}")
-    print(f"backward (fused): {backward_time_fused}")
-    print(f"backward (torch): {backward_time_torch}")
-
+    # Test sample_dot.
     images = rand((B, C_IMAGES, H, W))
     samples = 2.5 * rand((B, Q, D, 2)) - 1.25
     queries = rand((B, HD, Q, C_QUERIES))
     depths = rand((B, Q, D))
 
-    # test forward pass
     forward_time_fused = 0
     backward_time_fused = 0
     forward_time_torch = 0
     backward_time_torch = 0
-    for _ in trange(NUM_TESTS):
+
+    for _ in trange(NUM_TESTS, desc="sample_dot"):
         torch.cuda.synchronize()
         images_fused = images.clone().requires_grad_(True)
         samples_fused = samples.clone().requires_grad_(True)
@@ -102,6 +59,7 @@ if __name__ == "__main__":
         )
         torch.cuda.synchronize()
         forward_time_fused += time() - start
+        start = time()
         result_fused.sum().backward()
         torch.cuda.synchronize()
         backward_time_fused += time() - start
@@ -121,6 +79,7 @@ if __name__ == "__main__":
         )
         torch.cuda.synchronize()
         forward_time_torch += time() - start
+        start = time()
         result_torch.sum().backward()
         torch.cuda.synchronize()
         backward_time_torch += time() - start
@@ -131,6 +90,55 @@ if __name__ == "__main__":
         assert torch.allclose(queries_fused.grad, queries_torch.grad, atol=5e-5)
         assert torch.allclose(depths_fused.grad, depths_torch.grad, atol=5e-5)
 
+    print("sample_dot:")
+    print(f"forward (fused): {forward_time_fused}")
+    print(f"forward (torch): {forward_time_torch}")
+    print(f"backward (fused): {backward_time_fused}")
+    print(f"backward (torch): {backward_time_torch}")
+
+    # Test sample_sum.
+    images = rand((B, C_IMAGES, H, W))
+    samples = 2.5 * rand((B, Q, D, 2)) - 1.25
+    weights = rand((B, HD, Q, D))
+
+    forward_time_fused = 0
+    backward_time_fused = 0
+    forward_time_torch = 0
+    backward_time_torch = 0
+
+    for _ in trange(NUM_TESTS, desc="sample_sum"):
+        torch.cuda.synchronize()
+        images_fused = images.clone().requires_grad_(True)
+        samples_fused = samples.clone().requires_grad_(True)
+        weights_fused = weights.clone().requires_grad_(True)
+        start = time()
+        result_fused = sample_sum_fused(images_fused, samples_fused, weights_fused)
+        torch.cuda.synchronize()
+        forward_time_fused += time() - start
+        start = time()
+        result_fused.sum().backward()
+        torch.cuda.synchronize()
+        backward_time_fused += time() - start
+
+        torch.cuda.synchronize()
+        images_torch = images.clone().requires_grad_(True)
+        samples_torch = samples.clone().requires_grad_(True)
+        weights_torch = weights.clone().requires_grad_(True)
+        start = time()
+        result_torch = sample_sum_torch(images_torch, samples_torch, weights_torch)
+        torch.cuda.synchronize()
+        forward_time_torch += time() - start
+        start = time()
+        result_torch.sum().backward()
+        torch.cuda.synchronize()
+        backward_time_torch += time() - start
+
+        assert torch.allclose(result_fused, result_torch)
+        assert torch.allclose(images_fused.grad, images_torch.grad, atol=5e-5)
+        assert torch.allclose(samples_fused.grad, samples_torch.grad, atol=5e-5)
+        assert torch.allclose(weights_fused.grad, weights_torch.grad, atol=5e-5)
+
+    print("sample_sum:")
     print(f"forward (fused): {forward_time_fused}")
     print(f"forward (torch): {forward_time_torch}")
     print(f"backward (fused): {backward_time_fused}")
