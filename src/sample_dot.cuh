@@ -187,46 +187,65 @@ __launch_bounds__(256) __global__ void sample_dot_backward_kernel(
     const bool se_in_bounds = within_bounds_2d(iy_se, ix_se, H, W);
 
     // Accumulate image gradients and compute query gradients.
-    for (index_t hd = 0; hd < HD; hd++) {
-      const scalar_t output_gradient = output_gradients[b][hd][q][d];
-      for (index_t c = 0; c < C_queries; c++) {
+    for (index_t c = 0; c < C_queries; c++) {
+      scalar_t image_gradients_nw = 0;
+      scalar_t image_gradients_ne = 0;
+      scalar_t image_gradients_sw = 0;
+      scalar_t image_gradients_se = 0;
+
+      for (index_t hd = 0; hd < HD; hd++) {
+        const scalar_t output_gradient = output_gradients[b][hd][q][d];
         const scalar_t query = queries[b][hd][q][c];
+        const scalar_t output_gradient_query = output_gradient * query;
         scalar_t query_gradient = 0;
 
         if (nw_in_bounds) {
           const scalar_t pixel_nw = images[b][c][iy_nw][ix_nw];
           query_gradient += pixel_nw * nw;
-          atomicAdd(&image_gradients[b][c][iy_nw][ix_nw], output_gradient * nw * query);
-          const scalar_t pixel_nw_query = output_gradient * pixel_nw * query;
+          image_gradients_nw += output_gradient_query * nw;
+          const scalar_t pixel_nw_query = output_gradient_query * pixel_nw;
           sample_gradient_x -= pixel_nw_query * (iy_se - iy);
           sample_gradient_y -= pixel_nw_query * (ix_se - ix);
         }
         if (ne_in_bounds) {
           const scalar_t pixel_ne = images[b][c][iy_ne][ix_ne];
           query_gradient += pixel_ne * ne;
-          atomicAdd(&image_gradients[b][c][iy_ne][ix_ne], output_gradient * ne * query);
-          const scalar_t pixel_ne_query = output_gradient * pixel_ne * query;
+          image_gradients_ne += output_gradient_query * ne;
+          const scalar_t pixel_ne_query = output_gradient_query * pixel_ne;
           sample_gradient_x += pixel_ne_query * (iy_sw - iy);
           sample_gradient_y -= pixel_ne_query * (ix - ix_sw);
         }
         if (sw_in_bounds) {
           const scalar_t pixel_sw = images[b][c][iy_sw][ix_sw];
           query_gradient += pixel_sw * sw;
-          atomicAdd(&image_gradients[b][c][iy_sw][ix_sw], output_gradient * sw * query);
-          const scalar_t pixel_sw_query = output_gradient * pixel_sw * query;
+          image_gradients_sw += output_gradient_query * sw;
+          const scalar_t pixel_sw_query = output_gradient_query * pixel_sw;
           sample_gradient_x -= pixel_sw_query * (iy - iy_ne);
           sample_gradient_y += pixel_sw_query * (ix_ne - ix);
         }
         if (se_in_bounds) {
           const scalar_t pixel_se = images[b][c][iy_se][ix_se];
           query_gradient += pixel_se * se;
-          atomicAdd(&image_gradients[b][c][iy_se][ix_se], output_gradient * se * query);
-          const scalar_t pixel_se_query = output_gradient * pixel_se * query;
+          image_gradients_se += output_gradient_query * se;
+          const scalar_t pixel_se_query = output_gradient_query * pixel_se;
           sample_gradient_x += pixel_se_query * (iy - iy_nw);
           sample_gradient_y += pixel_se_query * (ix - ix_nw);
         }
 
         atomicAdd(&query_gradients[b][hd][q][c], output_gradient * query_gradient);
+      }
+
+      if (nw_in_bounds) {
+        atomicAdd(&image_gradients[b][c][iy_nw][ix_nw], image_gradients_nw);
+      }
+      if (ne_in_bounds) {
+        atomicAdd(&image_gradients[b][c][iy_ne][ix_ne], image_gradients_ne);
+      }
+      if (sw_in_bounds) {
+        atomicAdd(&image_gradients[b][c][iy_sw][ix_sw], image_gradients_sw);
+      }
+      if (se_in_bounds) {
+        atomicAdd(&image_gradients[b][c][iy_se][ix_se], image_gradients_se);
       }
     }
 
