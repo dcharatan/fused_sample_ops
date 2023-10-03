@@ -5,8 +5,8 @@ from einops import einsum, rearrange, repeat
 from .sample_dot_fused import (
     TypeDepths,
     TypeImages,
+    TypeOutputs,
     TypeQueries,
-    TypeResults,
     TypeSamples,
 )
 
@@ -17,7 +17,7 @@ def sample_dot_torch(
     queries: TypeQueries,
     depths: TypeDepths,
     num_octaves: int,
-) -> TypeResults:
+) -> TypeOutputs:
     """The non-fused equivalent of sample_dot."""
 
     samples = F.grid_sample(

@@ -1,14 +1,14 @@
 import torch.nn.functional as F
 from einops import einsum
 
-from .sample_sum_fused import TypeImages, TypeResults, TypeSamples, TypeWeights
+from .sample_sum_fused import TypeImages, TypeOutputs, TypeSamples, TypeWeights
 
 
-def fused_grid_sum_torch(
+def sample_sum_torch(
     images: TypeImages,
     samples: TypeSamples,
     weights: TypeWeights,
-) -> TypeResults:
+) -> TypeOutputs:
     grid_samples = F.grid_sample(
         images,
         samples,
