@@ -266,14 +266,13 @@ __launch_bounds__(256) __global__ void sample_dot_backward_kernel(
       }
       use_cos = !use_cos;
     }
-    atomicAdd(&depth_gradients[b][q][d], output_gradient * depth_gradient);
+
+    depth_gradients[b][q][d] = output_gradient * depth_gradient;
 
     const scalar_t scaling_x = 0.5 * static_cast<scalar_t>(W);
     const scalar_t scaling_y = 0.5 * static_cast<scalar_t>(H);
-    atomicAdd(&sample_gradients[b][q][d][0],
-              output_gradient * sample_gradient_x * scaling_x);
-    atomicAdd(&sample_gradients[b][q][d][1],
-              output_gradient * sample_gradient_y * scaling_y);
+    sample_gradients[b][q][d][0] = output_gradient * sample_gradient_x * scaling_x;
+    sample_gradients[b][q][d][1] = output_gradient * sample_gradient_y * scaling_y;
   }
 }
 
