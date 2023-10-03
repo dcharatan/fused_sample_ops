@@ -29,7 +29,7 @@ void fused_grid_sum::sample_dot_forward(torch::Tensor images,
   }
 }
 
-void fused_grid_sum::sample_dot_backward(torch::Tensor result_gradients,
+void fused_grid_sum::sample_dot_backward(torch::Tensor output_gradients,
                                          torch::Tensor images,
                                          torch::Tensor samples,
                                          torch::Tensor queries,
@@ -50,7 +50,7 @@ void fused_grid_sum::sample_dot_backward(torch::Tensor result_gradients,
           sample_dot_backward_kernel<scalar_t>
               <<<get_blocks(num_threads, BLOCK_SIZE), BLOCK_SIZE>>>(
                   num_threads,
-                  result_gradients
+                  output_gradients
                       .packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>(),
                   images.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   samples.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
