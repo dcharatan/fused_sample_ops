@@ -35,7 +35,7 @@ class SampleSumFused(Function):
             or weights.requires_grad,
         )
 
-        _cuda.forward(outputs, images, samples, weights)
+        _cuda.sample_sum_forward(images, samples, weights, outputs)
 
         return outputs
 
@@ -50,11 +50,11 @@ class SampleSumFused(Function):
 
         # Create empty tensors for the gradients.
         image_gradients = torch.zeros_like(images)
-        weight_gradients = torch.zeros_like(weights)
         sample_gradients = torch.zeros_like(samples)
+        weight_gradients = torch.zeros_like(weights)
 
-        _cuda.backward(
-            output_gradients.contiguous(),
+        _cuda.sample_sum_backward(
+            output_gradients,
             images,
             samples,
             weights,

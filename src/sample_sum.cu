@@ -10,9 +10,9 @@ void fused_grid_sum::sample_sum_forward(torch::Tensor images,
   // We assume that 32-bit indexing can be used and that only float32 and float64 are
   // supported.
   int B = weights.size(0);
-  int H = weights.size(1);
+  int HD = weights.size(1);
   int Q = weights.size(2);
-  int num_threads = B * H * Q;
+  int num_threads = B * HD * Q;
   if (num_threads > 0) {
     AT_DISPATCH_FLOATING_TYPES(
         images.scalar_type(), "sample_sum_forward", ([&] {
@@ -37,9 +37,10 @@ void fused_grid_sum::sample_sum_backward(torch::Tensor output_gradients,
   // We assume that 32-bit indexing can be used and that only float32 and float64 are
   // supported. We also assume that all tensors (except samples) need a gradient.
   int B = weights.size(0);
-  int H = weights.size(1);
+  int HD = weights.size(1);
   int Q = weights.size(2);
-  int num_threads = B * H * Q;
+  int D = weights.size(3);
+  int num_threads = B * HD * Q * D;
   if (num_threads > 0) {
     AT_DISPATCH_FLOATING_TYPES(
         images.scalar_type(), "sample_sum_backward", ([&] {
