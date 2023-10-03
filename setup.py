@@ -12,7 +12,6 @@ setup(
             name="fused_grid_sum._cuda",
             sources=[
                 "src/extension.cu",
-                "src/fused_grid_sum.cu",
                 "src/sample_dot.cu",
                 "src/sample_sum.cu",
             ],

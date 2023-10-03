@@ -36,6 +36,8 @@ if __name__ == "__main__":
     samples = 2.5 * rand((B, Q, D, 2)) - 1.25
     weights = rand((B, HD, Q, D))
 
+    from einops import rearrange
+
     # test forward pass
     forward_time_fused = 0
     backward_time_fused = 0

@@ -18,7 +18,6 @@ set(CMAKE_CUDA_STANDARD 17)
 # Define the _cuda library.
 add_library(_cuda SHARED
 	src/extension.cu
-	src/fused_grid_sum.cu
 	src/sample_dot.cu
 	src/sample_sum.cu
 )
