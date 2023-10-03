@@ -41,7 +41,8 @@ __launch_bounds__(256) __global__ void sample_dot_forward_kernel(
   const index_t C_queries = queries.size(3);
 
   CUDA_KERNEL_LOOP_TYPE(index, num_threads, index_t) {
-    const index_t b = index / (Q * D);
+    const index_t b = index / (HD * Q * D);
+    const index_t hd = (index / (Q * D)) % HD;
     const index_t q = (index / D) % Q;
     const index_t d = index % D;
 
@@ -71,56 +72,53 @@ __launch_bounds__(256) __global__ void sample_dot_forward_kernel(
     const bool sw_in_bounds = within_bounds_2d(iy_sw, ix_sw, H, W);
     const bool se_in_bounds = within_bounds_2d(iy_se, ix_se, H, W);
 
-    for (index_t hd = 0; hd < HD; hd++) {
-      // Compute the dot product with respect to the image.
-      scalar_t dot_product = 0;
-      index_t c = 0;
-      for (; c < C_queries; c++) {
-        const scalar_t query = queries[b][hd][q][c];
+    // Compute the dot product with respect to the image.
+    scalar_t dot_product = 0;
+    for (index_t c = 0; c < C_queries; c++) {
+      const scalar_t query = queries[b][hd][q][c];
 
-        if (nw_in_bounds) {
-          dot_product += images[b][c][iy_nw][ix_nw] * nw * query;
-        }
-        if (ne_in_bounds) {
-          dot_product += images[b][c][iy_ne][ix_ne] * ne * query;
-        }
-        if (sw_in_bounds) {
-          dot_product += images[b][c][iy_sw][ix_sw] * sw * query;
-        }
-        if (se_in_bounds) {
-          dot_product += images[b][c][iy_se][ix_se] * se * query;
-        }
+      if (nw_in_bounds) {
+        dot_product += images[b][c][iy_nw][ix_nw] * nw * query;
+      }
+      if (ne_in_bounds) {
+        dot_product += images[b][c][iy_ne][ix_ne] * ne * query;
+      }
+      if (sw_in_bounds) {
+        dot_product += images[b][c][iy_sw][ix_sw] * sw * query;
+      }
+      if (se_in_bounds) {
+        dot_product += images[b][c][iy_se][ix_se] * se * query;
+      }
+    }
+
+    // Compute the dot product with respect to the depth encoding.
+    const scalar_t depth = depths[b][q][d];
+    constexpr scalar_t PI = 3.141592654;
+    scalar_t frequency = 2 * PI;
+    bool use_cos = false;
+    for (index_t c = C_queries; c < C_images; c++) {
+      // Add a positional encoding channel to the dot product.
+      const scalar_t phase = use_cos ? PI * 0.5 : 0;
+      const scalar_t query = sin(depth * frequency + phase);
+
+      if (nw_in_bounds) {
+        dot_product += images[b][c][iy_nw][ix_nw] * nw * query;
+      }
+      if (ne_in_bounds) {
+        dot_product += images[b][c][iy_ne][ix_ne] * ne * query;
+      }
+      if (sw_in_bounds) {
+        dot_product += images[b][c][iy_sw][ix_sw] * sw * query;
+      }
+      if (se_in_bounds) {
+        dot_product += images[b][c][iy_se][ix_se] * se * query;
       }
 
-      // Compute the dot product with respect to the depth encoding.
-      const scalar_t depth = depths[b][q][d];
-      constexpr scalar_t PI = 3.141592654;
-      scalar_t frequency = 2 * PI;
-      bool use_cos = false;
-      for (; c < C_images; c++) {
-        // Add a positional encoding channel to the dot product.
-        const scalar_t phase = use_cos ? PI * 0.5 : 0;
-        const scalar_t query = sin(depth * frequency + phase);
-
-        if (nw_in_bounds) {
-          dot_product += images[b][c][iy_nw][ix_nw] * nw * query;
-        }
-        if (ne_in_bounds) {
-          dot_product += images[b][c][iy_ne][ix_ne] * ne * query;
-        }
-        if (sw_in_bounds) {
-          dot_product += images[b][c][iy_sw][ix_sw] * sw * query;
-        }
-        if (se_in_bounds) {
-          dot_product += images[b][c][iy_se][ix_se] * se * query;
-        }
-
-        // Update the positional encoding parameters.
-        if (use_cos) {
-          frequency *= 2;
-        }
-        use_cos = !use_cos;
+      // Update the positional encoding parameters.
+      if (use_cos) {
+        frequency *= 2;
       }
+      use_cos = !use_cos;
 
       outputs[b][hd][q][d] = dot_product;
     }
