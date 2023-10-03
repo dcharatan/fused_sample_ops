@@ -16,6 +16,7 @@ with install_import_hook(
 
 if __name__ == "__main__":
     device = torch.device("cuda:0")
+    torch.set_printoptions(4, sci_mode=False)
 
     NUM_TESTS = 100
     HD = 4
