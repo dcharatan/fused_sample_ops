@@ -45,24 +45,24 @@ __launch_bounds__(256) __global__ void sample_dot_forward_kernel(
     const index_t d = index % D;
 
     // Get image coordinates in pixel space.
-    scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
-    scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
+    const scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
+    const scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
 
     // Get corner pixel indices (referenced using compass directions).
-    index_t ix_nw = static_cast<index_t>(::floor(ix));
-    index_t iy_nw = static_cast<index_t>(::floor(iy));
-    index_t ix_ne = ix_nw + 1;
-    index_t iy_ne = iy_nw;
-    index_t ix_sw = ix_nw;
-    index_t iy_sw = iy_nw + 1;
-    index_t ix_se = ix_nw + 1;
-    index_t iy_se = iy_nw + 1;
+    const index_t ix_nw = static_cast<index_t>(::floor(ix));
+    const index_t iy_nw = static_cast<index_t>(::floor(iy));
+    const index_t ix_ne = ix_nw + 1;
+    const index_t iy_ne = iy_nw;
+    const index_t ix_sw = ix_nw;
+    const index_t iy_sw = iy_nw + 1;
+    const index_t ix_se = ix_nw + 1;
+    const index_t iy_se = iy_nw + 1;
 
     // Compute interpolation weights.
-    scalar_t nw = (ix_se - ix) * (iy_se - iy);
-    scalar_t ne = (ix - ix_sw) * (iy_sw - iy);
-    scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
-    scalar_t se = (ix - ix_nw) * (iy - iy_nw);
+    const scalar_t nw = (ix_se - ix) * (iy_se - iy);
+    const scalar_t ne = (ix - ix_sw) * (iy_sw - iy);
+    const scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
+    const scalar_t se = (ix - ix_nw) * (iy - iy_nw);
 
     // Compute the dot product with respect to the image.
     scalar_t dot_product = 0;
