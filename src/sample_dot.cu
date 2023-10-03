@@ -51,17 +51,17 @@ void fused_grid_sum::sample_dot_backward(torch::Tensor output_gradients,
               <<<get_blocks(num_threads, BLOCK_SIZE), BLOCK_SIZE>>>(
                   num_threads,
                   output_gradients
-                      .packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>(),
+                      .packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   images.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   samples.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
-                  queries.packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>(),
+                  queries.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   depths.packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>(),
                   image_gradients
                       .packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   sample_gradients
                       .packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   query_gradients
-                      .packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>(),
+                      .packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   depth_gradients
                       .packed_accessor32<scalar_t, 3, torch::RestrictPtrTraits>());
         }));
