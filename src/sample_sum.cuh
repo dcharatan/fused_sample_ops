@@ -107,14 +107,14 @@ __launch_bounds__(256) __global__ void sample_sum_backward_kernel(
   const index_t D = weights.size(3);
 
   CUDA_KERNEL_LOOP_TYPE(index, num_threads, index_t) {
-    const index_t b = index / (HD * Q);
-    const index_t hd = (index / Q) % HD;
-    const index_t q = index % Q;
+    const index_t b = index / (Q * D);
+    const index_t q = (index / D) % Q;
+    const index_t d = index % D;
 
     const scalar_t scaling_x = 0.5 * static_cast<scalar_t>(W);
     const scalar_t scaling_y = 0.5 * static_cast<scalar_t>(H);
 
-    for (index_t d = 0; d < D; d++) {
+    for (index_t hd = 0; hd < HD; hd++) {
       const scalar_t weight = weights[b][hd][q][d];
       scalar_t weight_gradient = 0;
 
