@@ -59,6 +59,15 @@ def sample_dot_torch(
 
 ## Compilation
 
+First, set up your virtual environment. Make sure the PyTorch wheel you use matches your local CUDA version.
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
+pip install -r requirements.txt
+```
+
 ### Development: Using CMake and VS Code
 
 Inside VS Code, run `CMake: Configure` and then `CMake: Build`. You may want to do `CMake: Select Variant` first. This will create `build/_cuda.so`.
