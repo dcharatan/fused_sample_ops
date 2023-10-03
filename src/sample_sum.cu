@@ -39,8 +39,7 @@ void fused_grid_sum::sample_sum_backward(torch::Tensor output_gradients,
   int B = weights.size(0);
   int HD = weights.size(1);
   int Q = weights.size(2);
-  int D = weights.size(3);
-  int num_threads = B * HD * Q * D;
+  int num_threads = B * HD * Q;
   if (num_threads > 0) {
     AT_DISPATCH_FLOATING_TYPES(
         images.scalar_type(), "sample_sum_backward", ([&] {
