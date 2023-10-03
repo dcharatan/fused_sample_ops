@@ -114,81 +114,93 @@ __launch_bounds__(256) __global__ void sample_sum_backward_kernel(
     const scalar_t scaling_x = 0.5 * static_cast<scalar_t>(W);
     const scalar_t scaling_y = 0.5 * static_cast<scalar_t>(H);
 
-    for (index_t hd = 0; hd < HD; hd++) {
-      const scalar_t weight = weights[b][hd][q][d];
-      scalar_t weight_gradient = 0;
+    // Get image coordinates in pixel space.
+    const scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
+    const scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
 
-      for (index_t c = 0; c < C; c++) {
+    // Get corner pixel indices (referenced using compass directions).
+    const index_t ix_nw = static_cast<index_t>(::floor(ix));
+    const index_t iy_nw = static_cast<index_t>(::floor(iy));
+    const index_t ix_ne = ix_nw + 1;
+    const index_t iy_ne = iy_nw;
+    const index_t ix_sw = ix_nw;
+    const index_t iy_sw = iy_nw + 1;
+    const index_t ix_se = ix_nw + 1;
+    const index_t iy_se = iy_nw + 1;
+
+    // Compute interpolation weights.
+    const scalar_t nw = (ix_se - ix) * (iy_se - iy);
+    const scalar_t ne = (ix - ix_sw) * (iy_sw - iy);
+    const scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
+    const scalar_t se = (ix - ix_nw) * (iy - iy_nw);
+
+    for (index_t c = 0; c < C; c++) {
+      scalar_t image_gradient_nw = 0;
+      scalar_t image_gradient_ne = 0;
+      scalar_t image_gradient_sw = 0;
+      scalar_t image_gradient_se = 0;
+
+      for (index_t hd = 0; hd < HD; hd++) {
+        const scalar_t weight = weights[b][hd][q][d];
+        // scalar_t weight_gradient = 0;
         const scalar_t output_gradient = output_gradients[b][hd][q][c];
-        scalar_t sample_gradient_x = 0;
-        scalar_t sample_gradient_y = 0;
-
-        // Get image coordinates in pixel space.
-        const scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
-        const scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
-
-        // Get corner pixel indices (referenced using compass directions).
-        const index_t ix_nw = static_cast<index_t>(::floor(ix));
-        const index_t iy_nw = static_cast<index_t>(::floor(iy));
-        const index_t ix_ne = ix_nw + 1;
-        const index_t iy_ne = iy_nw;
-        const index_t ix_sw = ix_nw;
-        const index_t iy_sw = iy_nw + 1;
-        const index_t ix_se = ix_nw + 1;
-        const index_t iy_se = iy_nw + 1;
-
-        // Compute interpolation weights.
-        const scalar_t nw = (ix_se - ix) * (iy_se - iy);
-        const scalar_t ne = (ix - ix_sw) * (iy_sw - iy);
-        const scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
-        const scalar_t se = (ix - ix_nw) * (iy - iy_nw);
+        // scalar_t sample_gradient_x = 0;
+        // scalar_t sample_gradient_y = 0;
 
         // Compute the sum.
         if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
-          const scalar_t pixel_nw = images[b][c][iy_nw][ix_nw];
-          weight_gradient += output_gradient * nw * pixel_nw;
-          const scalar_t pixel_nw_weight = pixel_nw * weight;
-          sample_gradient_x -= pixel_nw_weight * (iy_se - iy);
-          sample_gradient_y -= pixel_nw_weight * (ix_se - ix);
-          atomicAdd(&image_gradients[b][c][iy_nw][ix_nw],
-                    output_gradient * nw * weight);
+          // const scalar_t pixel_nw = images[b][c][iy_nw][ix_nw];
+          // weight_gradient += output_gradient * nw * pixel_nw;
+          // const scalar_t pixel_nw_weight = pixel_nw * weight;
+          // sample_gradient_x -= pixel_nw_weight * (iy_se - iy);
+          // sample_gradient_y -= pixel_nw_weight * (ix_se - ix);
+          image_gradient_nw += output_gradient * weight;
         }
         if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
-          const scalar_t pixel_ne = images[b][c][iy_ne][ix_ne];
-          weight_gradient += output_gradient * ne * pixel_ne;
-          const scalar_t pixel_ne_weight = pixel_ne * weight;
-          sample_gradient_x += pixel_ne_weight * (iy_sw - iy);
-          sample_gradient_y -= pixel_ne_weight * (ix - ix_sw);
-          atomicAdd(&image_gradients[b][c][iy_ne][ix_ne],
-                    output_gradient * ne * weight);
+          // const scalar_t pixel_ne = images[b][c][iy_ne][ix_ne];
+          // weight_gradient += output_gradient * ne * pixel_ne;
+          // const scalar_t pixel_ne_weight = pixel_ne * weight;
+          // sample_gradient_x += pixel_ne_weight * (iy_sw - iy);
+          // sample_gradient_y -= pixel_ne_weight * (ix - ix_sw);
+          image_gradient_ne += output_gradient * weight;
         }
         if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
-          const scalar_t pixel_sw = images[b][c][iy_sw][ix_sw];
-          weight_gradient += output_gradient * sw * pixel_sw;
-          const scalar_t pixel_sw_weight = pixel_sw * weight;
-          sample_gradient_x -= pixel_sw_weight * (iy - iy_ne);
-          sample_gradient_y += pixel_sw_weight * (ix_ne - ix);
-          atomicAdd(&image_gradients[b][c][iy_sw][ix_sw],
-                    output_gradient * sw * weight);
+          // const scalar_t pixel_sw = images[b][c][iy_sw][ix_sw];
+          // weight_gradient += output_gradient * sw * pixel_sw;
+          // const scalar_t pixel_sw_weight = pixel_sw * weight;
+          // sample_gradient_x -= pixel_sw_weight * (iy - iy_ne);
+          // sample_gradient_y += pixel_sw_weight * (ix_ne - ix);
+          image_gradient_sw += output_gradient * weight;
         }
         if (within_bounds_2d(iy_se, ix_se, H, W)) {
-          const scalar_t pixel_se = images[b][c][iy_se][ix_se];
-          weight_gradient += output_gradient * se * pixel_se;
-          const scalar_t pixel_se_weight = pixel_se * weight;
-          sample_gradient_x += pixel_se_weight * (iy - iy_nw);
-          sample_gradient_y += pixel_se_weight * (ix - ix_nw);
-          atomicAdd(&image_gradients[b][c][iy_se][ix_se],
-                    output_gradient * se * weight);
+          // const scalar_t pixel_se = images[b][c][iy_se][ix_se];
+          // weight_gradient += output_gradient * se * pixel_se;
+          // const scalar_t pixel_se_weight = pixel_se * weight;
+          // sample_gradient_x += pixel_se_weight * (iy - iy_nw);
+          // sample_gradient_y += pixel_se_weight * (ix - ix_nw);
+          image_gradient_se += output_gradient * weight;
         }
 
         // Add to the sample gradients.
-        atomicAdd(&sample_gradients[b][q][d][0],
-                  output_gradient * sample_gradient_x * scaling_x);
-        atomicAdd(&sample_gradients[b][q][d][1],
-                  output_gradient * sample_gradient_y * scaling_y);
+        // atomicAdd(&sample_gradients[b][q][d][0],
+        //           output_gradient * sample_gradient_x * scaling_x);
+        // atomicAdd(&sample_gradients[b][q][d][1],
+        //           output_gradient * sample_gradient_y * scaling_y);
+        // atomicAdd(&weight_gradients[b][hd][q][d], weight_gradient);
       }
 
-      atomicAdd(&weight_gradients[b][hd][q][d], weight_gradient);
+      if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
+        atomicAdd(&image_gradients[b][c][iy_nw][ix_nw], image_gradient_nw * nw);
+      }
+      if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
+        atomicAdd(&image_gradients[b][c][iy_ne][ix_ne], image_gradient_ne * ne);
+      }
+      if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
+        atomicAdd(&image_gradients[b][c][iy_sw][ix_sw], image_gradient_sw * sw);
+      }
+      if (within_bounds_2d(iy_se, ix_se, H, W)) {
+        atomicAdd(&image_gradients[b][c][iy_se][ix_se], image_gradient_se * se);
+      }
     }
   }
 }
