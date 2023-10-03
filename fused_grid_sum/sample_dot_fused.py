@@ -10,7 +10,7 @@ TypeImages = Float[Tensor, "batch channel height width"]
 TypeSamples = Float[Tensor, "batch query depth 2"]
 TypeQueries = Float[Tensor, "batch query channel-2*num_octaves"]
 TypeDepths = Float[Tensor, "batch query depth"]
-TypeResults = Float[Tensor, "batch query depth"]
+TypeOutputs = Float[Tensor, "batch query depth"]
 
 
 class SampleDotFused(Function):
@@ -22,7 +22,7 @@ class SampleDotFused(Function):
         queries: TypeQueries,
         depths: TypeDepths,
         num_octaves: int,
-    ) -> TypeResults:
+    ) -> TypeOutputs:
         _, c_images, _, _ = images.shape
         _, _, c_queries = queries.shape
         assert c_images - c_queries == 2 * num_octaves
@@ -30,7 +30,7 @@ class SampleDotFused(Function):
         # Save the inputs for the backward pass.
         ctx.save_for_backward(images, samples, queries, depths)
 
-        # Create an empty tensor for the result.
+        # Create an empty tensor for the outputs.
         b, q, d = depths.shape
         outputs = torch.empty(
             (b, q, d),
@@ -49,8 +49,8 @@ class SampleDotFused(Function):
     @once_differentiable
     def backward(
         ctx: FunctionCtx,
-        result_gradients: TypeResults,
-    ) -> tuple[TypeImages, None, TypeQueries, TypeDepths]:
+        output_gradients: TypeOutputs,
+    ) -> tuple[TypeImages, TypeSamples, TypeQueries, TypeDepths]:
         # Retrieve the inputs to the forward pass.
         images, samples, queries, depths = ctx.saved_tensors
 
@@ -61,7 +61,7 @@ class SampleDotFused(Function):
         depth_gradients = torch.zeros_like(depths)
 
         _cuda.sample_dot_backward(
-            result_gradients,
+            output_gradients,
             images,
             samples,
             queries,
@@ -84,7 +84,7 @@ def sample_dot_fused(
     queries: TypeQueries,
     depths: TypeDepths,
     num_octaves: int,
-) -> TypeResults:
+) -> TypeOutputs:
     """Compute a fused combination of torch.nn.functional.grid_sample and dot product.
     This function only supports gradients for images and queries (not samples).
     """
