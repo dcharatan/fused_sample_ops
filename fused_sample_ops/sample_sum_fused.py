@@ -26,7 +26,7 @@ class SampleSumFused(Function):
         # Create an empty tensor for the outputs.
         b, c, _, _ = images.shape
         _, hd, q, _ = weights.shape
-        outputs = torch.empty(
+        outputs = torch.zeros(
             (b, hd, q, c),
             dtype=images.dtype,
             device=images.device,

@@ -4,16 +4,17 @@
 constexpr int BLOCK_SIZE = 256;
 
 void fused_sample_ops::sample_sum_forward(torch::Tensor images,
-                                        torch::Tensor samples,
-                                        torch::Tensor weights,
-                                        torch::Tensor outputs) {
+                                          torch::Tensor samples,
+                                          torch::Tensor weights,
+                                          torch::Tensor outputs) {
   // We assume that 32-bit indexing can be used and that only float32 and float64 are
   // supported.
   int B = weights.size(0);
   int HD = weights.size(1);
   int Q = weights.size(2);
+  int D = weights.size(3);
   int C = images.size(1);
-  int num_threads = B * HD * Q * C;
+  int num_threads = B * HD * Q * D * C;
   if (num_threads > 0) {
     AT_DISPATCH_FLOATING_TYPES(
         images.scalar_type(), "sample_sum_forward", ([&] {
@@ -29,12 +30,12 @@ void fused_sample_ops::sample_sum_forward(torch::Tensor images,
 }
 
 void fused_sample_ops::sample_sum_backward(torch::Tensor output_gradients,
-                                         torch::Tensor images,
-                                         torch::Tensor samples,
-                                         torch::Tensor weights,
-                                         torch::Tensor image_gradients,
-                                         torch::Tensor sample_gradients,
-                                         torch::Tensor weight_gradients) {
+                                           torch::Tensor images,
+                                           torch::Tensor samples,
+                                           torch::Tensor weights,
+                                           torch::Tensor image_gradients,
+                                           torch::Tensor sample_gradients,
+                                           torch::Tensor weight_gradients) {
   // We assume that 32-bit indexing can be used and that only float32 and float64 are
   // supported. Note that we parallelize over different dimensions than in the forward
   // pass, since the backward pass has no dependency between depths.

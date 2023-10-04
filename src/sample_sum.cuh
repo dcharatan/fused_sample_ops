@@ -36,49 +36,50 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
   const index_t D = weights.size(3);
 
   CUDA_KERNEL_LOOP_TYPE(index, num_threads, index_t) {
-    const index_t b = index / (HD * Q * C);
-    const index_t hd = (index / (Q * C)) % HD;
-    const index_t q = (index / C) % Q;
+    const index_t b = index / (HD * Q * C * D);
+    const index_t hd = (index / (Q * C * D)) % HD;
+    const index_t q = (index / (C * D)) % Q;
+    const index_t d = (index / C) % D;
     const index_t c = index % C;
 
     scalar_t sum = 0;
-    for (index_t d = 0; d < D; d++) {
-      // Get image coordinates in pixel space.
-      const scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
-      const scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
 
-      // Get corner pixel indices (referenced using compass directions).
-      const index_t ix_nw = static_cast<index_t>(::floor(ix));
-      const index_t iy_nw = static_cast<index_t>(::floor(iy));
-      const index_t ix_ne = ix_nw + 1;
-      const index_t iy_ne = iy_nw;
-      const index_t ix_sw = ix_nw;
-      const index_t iy_sw = iy_nw + 1;
-      const index_t ix_se = ix_nw + 1;
-      const index_t iy_se = iy_nw + 1;
+    // Get image coordinates in pixel space.
+    const scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
+    const scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
 
-      // Compute interpolation weights.
-      const scalar_t nw = (ix_se - ix) * (iy_se - iy);
-      const scalar_t ne = (ix - ix_sw) * (iy_sw - iy);
-      const scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
-      const scalar_t se = (ix - ix_nw) * (iy - iy_nw);
+    // Get corner pixel indices (referenced using compass directions).
+    const index_t ix_nw = static_cast<index_t>(::floor(ix));
+    const index_t iy_nw = static_cast<index_t>(::floor(iy));
+    const index_t ix_ne = ix_nw + 1;
+    const index_t iy_ne = iy_nw;
+    const index_t ix_sw = ix_nw;
+    const index_t iy_sw = iy_nw + 1;
+    const index_t ix_se = ix_nw + 1;
+    const index_t iy_se = iy_nw + 1;
 
-      // Compute the sum.
-      const scalar_t weight = weights[b][hd][q][d];
-      if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
-        sum += images[b][c][iy_nw][ix_nw] * nw * weight;
-      }
-      if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
-        sum += images[b][c][iy_ne][ix_ne] * ne * weight;
-      }
-      if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
-        sum += images[b][c][iy_sw][ix_sw] * sw * weight;
-      }
-      if (within_bounds_2d(iy_se, ix_se, H, W)) {
-        sum += images[b][c][iy_se][ix_se] * se * weight;
-      }
+    // Compute interpolation weights.
+    const scalar_t nw = (ix_se - ix) * (iy_se - iy);
+    const scalar_t ne = (ix - ix_sw) * (iy_sw - iy);
+    const scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
+    const scalar_t se = (ix - ix_nw) * (iy - iy_nw);
+
+    // Compute the sum.
+    const scalar_t weight = weights[b][hd][q][d];
+    if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
+      sum += images[b][c][iy_nw][ix_nw] * nw * weight;
     }
-    outputs[b][hd][q][c] = sum;
+    if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
+      sum += images[b][c][iy_ne][ix_ne] * ne * weight;
+    }
+    if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
+      sum += images[b][c][iy_sw][ix_sw] * sw * weight;
+    }
+    if (within_bounds_2d(iy_se, ix_se, H, W)) {
+      sum += images[b][c][iy_se][ix_se] * se * weight;
+    }
+
+    atomicAdd(&outputs[b][hd][q][c], sum);
   }
 }
 
