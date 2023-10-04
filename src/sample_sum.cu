@@ -31,20 +31,25 @@ void fused_sample_ops::sample_sum_forward(torch::Tensor images,
 
   // Compute a padded version of D that is greater than or equal to D and cleanly
   // divisible by initial_loads_per_thread.
-  const int D_padded = divide_round_up(D, initial_loads_per_thread);
+  const int D_padded =
+      divide_round_up(D, initial_loads_per_thread) * initial_loads_per_thread;
+
+  // Compute the number of threads needed for any given sum.
+  const int threads_per_sum = D_padded / initial_loads_per_thread;
 
   // Compute the number of sums that can be carried out in each block.
-  const int sums_per_block = BLOCK_SIZE / D_padded;
+  const int sums_per_block = BLOCK_SIZE / threads_per_sum;
 
-  // Use the above to compute the number of threads needed.
-  const int num_elements = B * HD * Q * C;
-  const int num_threads = divide_round_up(num_elements, sums_per_block);
+  // Compute the total number of blocks needed to carry out the sums.
+  const int sums_total = B * HD * Q * C;
+  const int blocks_total = divide_round_up(sums_total, sums_per_block);
 
-  if (num_threads > 0) {
+  if (blocks_total > 0) {
     AT_DISPATCH_FLOATING_TYPES(
         images.scalar_type(), "sample_sum_forward", ([&] {
-          sample_sum_forward_kernel<scalar_t><<<num_threads, BLOCK_SIZE>>>(
-              num_elements, sums_per_block, D_padded, initial_loads_per_thread,
+          sample_sum_forward_kernel<scalar_t><<<blocks_total, BLOCK_SIZE>>>(
+              sums_total, threads_per_sum, sums_per_block, D_padded,
+              initial_loads_per_thread,
               images.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
               samples.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
               weights.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),

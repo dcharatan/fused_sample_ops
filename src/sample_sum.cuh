@@ -73,7 +73,8 @@ __device__ scalar_t draw_sample(
 
 template <typename scalar_t, typename index_t>
 __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
-    const index_t num_elements,
+    const index_t sums_total,
+    const index_t threads_per_sum,
     const index_t sums_per_block,
     const index_t D_padded,
     const index_t initial_loads_per_thread,
@@ -90,16 +91,16 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
   const index_t Q = weights.size(2);
   const index_t D = weights.size(3);
 
-  // Determine this thread's index in (B, HD, Q, C).
-  const index_t threads_per_sum = D_padded / initial_loads_per_thread;
+  // Determine the index of the sum this thread is computing.
   const index_t index_of_sum_in_block = threadIdx.x / threads_per_sum;
-  const index_t index_bhdqc = blockIdx.x * sums_per_block + index_of_sum_in_block;
+  const index_t index_of_sum = blockIdx.x * sums_per_block + index_of_sum_in_block;
 
-  if (index_bhdqc < num_elements) {
-    const index_t b = index_bhdqc / (HD * Q * C);
-    const index_t hd = (index_bhdqc / (Q * C)) % HD;
-    const index_t q = (index_bhdqc / C) % Q;
-    const index_t c = index_bhdqc % C;
+  if (index_of_sum < sums_total) {
+    // Decompose the index of the sum into indices into (B, HD, Q, C).
+    const index_t b = index_of_sum / (HD * Q * C);
+    const index_t hd = (index_of_sum / (Q * C)) % HD;
+    const index_t q = (index_of_sum / C) % Q;
+    const index_t c = index_of_sum % C;
 
     // Compute the indices used for the parallel reduction.
     const index_t index_in_block = threadIdx.x;
@@ -115,7 +116,7 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
       }
     }
 
-    atomicAdd(&outputs[b][hd][q][c], sum);
+    atomicAdd(&outputs[b][hd][q][c], 1);
   }
 }
 
