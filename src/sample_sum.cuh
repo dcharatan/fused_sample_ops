@@ -6,6 +6,8 @@
 
 namespace fused_sample_ops {
 
+constexpr int BLOCK_SIZE = 256;
+
 void sample_sum_forward(torch::Tensor images,
                         torch::Tensor samples,
                         torch::Tensor weights,
@@ -73,6 +75,10 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> samples,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> weights,
     torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> outputs) {
+  // Set up dynamic shared memory.
+  extern __shared__ __align__(sizeof(scalar_t)) unsigned char shared_memory_raw[];
+  scalar_t *shared_memory = reinterpret_cast<scalar_t *>(shared_memory_raw);
+
   // Extract dimensions.
   const index_t B = images.size(0);
   const index_t C = images.size(1);
@@ -87,10 +93,15 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
     const index_t q = (index / D) % Q;
     const index_t d = index % D;
 
+    // Load the weights into shared memory.
+    for (index_t hd = 0; hd < HD; hd++) {
+      shared_memory[hd * BLOCK_SIZE + blockIdx.x] = weights[b][hd][q][d];
+    }
+
     for (index_t c = 0; c < C; c++) {
       const scalar_t sample = draw_sample(images, samples, H, W, b, q, d, c);
       for (index_t hd = 0; hd < HD; hd++) {
-        const scalar_t weight = weights[b][hd][q][d];
+        const scalar_t weight = shared_memory[hd * BLOCK_SIZE + blockIdx.x];
         atomicAdd(&outputs[b][hd][q][c], sample * weight);
       }
     }

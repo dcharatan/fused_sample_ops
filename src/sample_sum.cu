@@ -1,8 +1,6 @@
 #include "common.cuh"
 #include "sample_sum.cuh"
 
-constexpr int BLOCK_SIZE = 256;
-
 void fused_sample_ops::sample_sum_forward(torch::Tensor images,
                                           torch::Tensor samples,
                                           torch::Tensor weights,
@@ -10,6 +8,7 @@ void fused_sample_ops::sample_sum_forward(torch::Tensor images,
   // We assume that 32-bit indexing can be used and that only float32 and float64 are
   // supported.
   int B = weights.size(0);
+  int HD = weights.size(1);
   int Q = weights.size(2);
   int D = weights.size(3);
   int num_threads = B * Q * D;
@@ -17,7 +16,8 @@ void fused_sample_ops::sample_sum_forward(torch::Tensor images,
     AT_DISPATCH_FLOATING_TYPES(
         images.scalar_type(), "sample_sum_forward", ([&] {
           sample_sum_forward_kernel<scalar_t>
-              <<<get_blocks(num_threads, BLOCK_SIZE), BLOCK_SIZE>>>(
+              <<<get_blocks(num_threads, BLOCK_SIZE), BLOCK_SIZE,
+                 BLOCK_SIZE * HD * sizeof(scalar_t)>>>(
                   num_threads,
                   images.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
                   samples.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
