@@ -95,7 +95,7 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
   const index_t index_of_sum_in_block = threadIdx.x / threads_per_sum;
   const index_t index_of_sum = blockIdx.x * sums_per_block + index_of_sum_in_block;
 
-  if (index_of_sum < sums_total) {
+  if (index_of_sum < sums_total && index_of_sum_in_block < sums_per_block) {
     // Decompose the index of the sum into indices into (B, HD, Q, C).
     const index_t b = index_of_sum / (HD * Q * C);
     const index_t hd = (index_of_sum / (Q * C)) % HD;
@@ -116,7 +116,7 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
       }
     }
 
-    atomicAdd(&outputs[b][hd][q][c], 1);
+    atomicAdd(&outputs[b][hd][q][c], sum);
   }
 }
 
