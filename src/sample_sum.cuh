@@ -95,13 +95,13 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
 
     // Load the weights into shared memory.
     for (index_t hd = 0; hd < HD; hd++) {
-      shared_memory[hd * BLOCK_SIZE + blockIdx.x] = weights[b][hd][q][d];
+      shared_memory[hd * BLOCK_SIZE + threadIdx.x] = weights[b][hd][q][d];
     }
 
     for (index_t c = 0; c < C; c++) {
       const scalar_t sample = draw_sample(images, samples, H, W, b, q, d, c);
       for (index_t hd = 0; hd < HD; hd++) {
-        const scalar_t weight = shared_memory[hd * BLOCK_SIZE + blockIdx.x];
+        const scalar_t weight = shared_memory[hd * BLOCK_SIZE + threadIdx.x];
         atomicAdd(&outputs[b][hd][q][c], sample * weight);
       }
     }
