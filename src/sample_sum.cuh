@@ -22,19 +22,19 @@ void sample_sum_backward(torch::Tensor output_gradients,
                          torch::Tensor weight_gradients);
 
 template <typename scalar_t, typename index_t>
-__device__ scalar_t draw_sample(
+__device__ void draw_sample(
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> &images,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> &samples,
-    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> &weights,
     const index_t H,
     const index_t W,
     const index_t b,
-    const index_t hd,
     const index_t q,
     const index_t d,
-    const index_t c) {
-  scalar_t sum = 0;
-
+    const index_t c,
+    scalar_t &sample_nw,
+    scalar_t &sample_ne,
+    scalar_t &sample_sw,
+    scalar_t &sample_se) {
   // Get image coordinates in pixel space.
   const scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
   const scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
@@ -55,22 +55,19 @@ __device__ scalar_t draw_sample(
   const scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
   const scalar_t se = (ix - ix_nw) * (iy - iy_nw);
 
-  // Compute the sum.
-  const scalar_t weight = weights[b][hd][q][d];
+  // Update the samples.
   if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
-    sum += images[b][c][iy_nw][ix_nw] * nw * weight;
+    sample_nw = images[b][c][iy_nw][ix_nw] * nw;
   }
   if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
-    sum += images[b][c][iy_ne][ix_ne] * ne * weight;
+    sample_ne = images[b][c][iy_ne][ix_ne] * ne;
   }
   if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
-    sum += images[b][c][iy_sw][ix_sw] * sw * weight;
+    sample_sw = images[b][c][iy_sw][ix_sw] * sw;
   }
   if (within_bounds_2d(iy_se, ix_se, H, W)) {
-    sum += images[b][c][iy_se][ix_se] * se * weight;
+    sample_se = images[b][c][iy_se][ix_se] * se;
   }
-
-  return sum;
 }
 
 template <typename scalar_t, typename index_t>
@@ -84,7 +81,9 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> samples,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> weights,
     torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> outputs) {
-  __shared__ scalar_t shared_memory[BLOCK_SIZE];
+  // Set up dynamic shared memory.
+  extern __shared__ __align__(sizeof(scalar_t)) unsigned char shared_memory_char[];
+  scalar_t *shared_memory = reinterpret_cast<scalar_t *>(shared_memory_char);
 
   // Extract dimensions.
   const index_t B = images.size(0);
@@ -101,8 +100,7 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
 
   if (index_of_sum < sums_total && index_of_sum_in_block < sums_per_block) {
     // Decompose the index of the sum into indices into (B, HD, Q, C).
-    const index_t b = index_of_sum / (HD * Q * C);
-    const index_t hd = (index_of_sum / (Q * C)) % HD;
+    const index_t b = index_of_sum / (Q * C);
     const index_t q = (index_of_sum / C) % Q;
     const index_t c = index_of_sum % C;
 
@@ -110,18 +108,28 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
     const index_t index_in_block = threadIdx.x;
     const index_t index_in_sum = index_in_block % threads_per_sum;
 
-    // Draw the initial samples.
-    scalar_t sum = 0;
+    // Draw the initial samples and place them into shared memory.
     const index_t start_in_d = index_in_sum * initial_loads_per_thread;
     for (index_t i = 0; i < initial_loads_per_thread; i++) {
       const index_t d = start_in_d + i;
       if (d < D) {
-        sum += draw_sample(images, samples, weights, H, W, b, hd, q, d, c);
+        // Draw the sample if it's in bounds.
+        scalar_t sample_nw;
+        scalar_t sample_ne;
+        scalar_t sample_sw;
+        scalar_t sample_se;
+        draw_sample(images, samples, H, W, b, q, d, c, sample_nw, sample_ne, sample_sw,
+                    sample_se);
+
+        // 
+        for (index_t hd = 0; hd < HD; hd++) {
+          shared_memory[hd * BLOCK_SIZE + index_in_block] =
+              weights[b][hd][q][d] * (sample_nw + sample_ne + sample_sw + sample_se);
+        }
       }
     }
 
     // Put the initial samples in shared memory.
-    shared_memory[index_in_block] = sum;
     __syncthreads();
 
     // Do reduction in shared memory.
@@ -135,7 +143,7 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
       __syncthreads();
     }
     if (index_in_sum == 0) {
-      outputs[b][hd][q][c] = shared_memory[offset];
+      outputs[b][0][q][c] = shared_memory[offset];
     }
   }
 }

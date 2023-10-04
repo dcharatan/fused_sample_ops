@@ -39,19 +39,20 @@ void fused_sample_ops::sample_sum_forward(torch::Tensor images,
   const int sums_per_block = BLOCK_SIZE / threads_per_sum;
 
   // Compute the total number of blocks needed to carry out the sums.
-  const int sums_total = B * HD * Q * C;
+  const int sums_total = B * Q * C;
   const int blocks_total = divide_round_up(sums_total, sums_per_block);
 
   if (blocks_total > 0) {
     AT_DISPATCH_FLOATING_TYPES(
         images.scalar_type(), "sample_sum_forward", ([&] {
-          sample_sum_forward_kernel<scalar_t><<<blocks_total, BLOCK_SIZE>>>(
-              sums_total, threads_per_sum, sums_per_block, D_padded,
-              initial_loads_per_thread,
-              images.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
-              samples.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
-              weights.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
-              outputs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>());
+          sample_sum_forward_kernel<scalar_t>
+              <<<blocks_total, BLOCK_SIZE, BLOCK_SIZE * HD * sizeof(scalar_t)>>>(
+                  sums_total, threads_per_sum, sums_per_block, D_padded,
+                  initial_loads_per_thread,
+                  images.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  samples.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  weights.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+                  outputs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>());
         }));
   }
 }
