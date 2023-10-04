@@ -12,7 +12,8 @@ void fused_sample_ops::sample_sum_forward(torch::Tensor images,
   int B = weights.size(0);
   int HD = weights.size(1);
   int Q = weights.size(2);
-  int num_threads = B * HD * Q;
+  int C = images.size(1);
+  int num_threads = B * HD * Q * C;
   if (num_threads > 0) {
     AT_DISPATCH_FLOATING_TYPES(
         images.scalar_type(), "sample_sum_forward", ([&] {
