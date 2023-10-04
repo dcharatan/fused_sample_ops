@@ -73,7 +73,10 @@ __device__ scalar_t draw_sample(
 
 template <typename scalar_t, typename index_t>
 __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
-    const index_t num_threads,
+    const index_t num_elements,
+    const index_t sums_per_block,
+    const index_t D_padded,
+    const index_t initial_loads_per_thread,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> images,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> samples,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> weights,
@@ -87,16 +90,32 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
   const index_t Q = weights.size(2);
   const index_t D = weights.size(3);
 
-  CUDA_KERNEL_LOOP_TYPE(index, num_threads, index_t) {
-    const index_t b = index / (HD * Q * C * D);
-    const index_t hd = (index / (Q * C * D)) % HD;
-    const index_t q = (index / (C * D)) % Q;
-    const index_t d = (index / C) % D;
-    const index_t c = index % C;
+  // Determine this thread's index in (B, HD, Q, C).
+  const index_t threads_per_sum = D_padded / initial_loads_per_thread;
+  const index_t index_of_sum_in_block = threadIdx.x / threads_per_sum;
+  const index_t index_bhdqc = blockIdx.x * sums_per_block + index_of_sum_in_block;
 
-    const scalar_t sample = draw_sample(images, samples, weights, H, W, b, hd, q, d, c);
+  if (index_bhdqc < num_elements) {
+    const index_t b = index_bhdqc / (HD * Q * C);
+    const index_t hd = (index_bhdqc / (Q * C)) % HD;
+    const index_t q = (index_bhdqc / C) % Q;
+    const index_t c = index_bhdqc % C;
 
-    atomicAdd(&outputs[b][hd][q][c], sample);
+    // Compute the indices used for the parallel reduction.
+    const index_t index_in_block = threadIdx.x;
+    const index_t index_in_sum = index_in_block % threads_per_sum;
+
+    // Draw the initial samples.
+    scalar_t sum = 0;
+    const index_t start_in_d = index_in_sum * initial_loads_per_thread;
+    for (index_t i = 0; i < initial_loads_per_thread; i++) {
+      const index_t d = start_in_d + i;
+      if (d < D) {
+        sum += draw_sample(images, samples, weights, H, W, b, hd, q, d, c);
+      }
+    }
+
+    atomicAdd(&outputs[b][hd][q][c], sum);
   }
 }
 
