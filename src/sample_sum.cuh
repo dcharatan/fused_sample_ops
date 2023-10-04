@@ -84,7 +84,7 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> samples,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> weights,
     torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> outputs) {
-  __shared__ int shared_memory[BLOCK_SIZE];
+  __shared__ scalar_t shared_memory[BLOCK_SIZE];
 
   // Extract dimensions.
   const index_t B = images.size(0);
@@ -126,8 +126,9 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
 
     // Do reduction in shared memory.
     const index_t offset = index_of_sum_in_block * threads_per_sum;
-    for (index_t s = threads_per_sum / 2; s > 0; s >>= 1) {
-      if (index_in_sum < s) {
+    const uint32_t tps = static_cast<uint32_t>(threads_per_sum);
+    for (uint32_t s = 1 << (31 - __clz(tps)); s > 0; s >>= 1) {
+      if (index_in_sum < s && index_in_sum + s < threads_per_sum) {
         const index_t with_offset = index_in_sum + offset;
         shared_memory[with_offset] += shared_memory[with_offset + s];
       }
