@@ -1,8 +1,6 @@
 #include "common.cuh"
 #include "sample_sum.cuh"
 
-constexpr int BLOCK_SIZE = 256;
-
 int divide_round_up(const int a, const int b) {
   // This is integer division that rounds up. It answers the question "how many of b are
   // needed to hold a?"

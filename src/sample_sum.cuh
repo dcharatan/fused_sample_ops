@@ -6,6 +6,8 @@
 
 namespace fused_sample_ops {
 
+constexpr int BLOCK_SIZE = 256;
+
 void sample_sum_forward(torch::Tensor images,
                         torch::Tensor samples,
                         torch::Tensor weights,
@@ -82,6 +84,8 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> samples,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> weights,
     torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> outputs) {
+  __shared__ int shared_memory[BLOCK_SIZE];
+
   // Extract dimensions.
   const index_t B = images.size(0);
   const index_t C = images.size(1);
@@ -116,7 +120,22 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
       }
     }
 
-    atomicAdd(&outputs[b][hd][q][c], sum);
+    // Put the initial samples in shared memory.
+    shared_memory[index_in_block] = sum;
+    __syncthreads();
+
+    // Do reduction in shared memory.
+    const index_t offset = index_of_sum_in_block * threads_per_sum;
+    for (index_t s = threads_per_sum / 2; s > 0; s >>= 1) {
+      if (index_in_sum < s) {
+        const index_t with_offset = index_in_sum + offset;
+        shared_memory[with_offset] += shared_memory[with_offset + s];
+      }
+      __syncthreads();
+    }
+    if (index_in_sum == 0) {
+      outputs[b][hd][q][c] = shared_memory[offset];
+    }
   }
 }
 
