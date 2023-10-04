@@ -20,6 +20,58 @@ void sample_sum_backward(torch::Tensor output_gradients,
                          torch::Tensor weight_gradients);
 
 template <typename scalar_t, typename index_t>
+__device__ scalar_t draw_sample(
+    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> &images,
+    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> &samples,
+    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> &weights,
+    const index_t H,
+    const index_t W,
+    const index_t b,
+    const index_t hd,
+    const index_t q,
+    const index_t d,
+    const index_t c) {
+  scalar_t sum = 0;
+
+  // Get image coordinates in pixel space.
+  const scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
+  const scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
+
+  // Get corner pixel indices (referenced using compass directions).
+  const index_t ix_nw = static_cast<index_t>(::floor(ix));
+  const index_t iy_nw = static_cast<index_t>(::floor(iy));
+  const index_t ix_ne = ix_nw + 1;
+  const index_t iy_ne = iy_nw;
+  const index_t ix_sw = ix_nw;
+  const index_t iy_sw = iy_nw + 1;
+  const index_t ix_se = ix_nw + 1;
+  const index_t iy_se = iy_nw + 1;
+
+  // Compute interpolation weights.
+  const scalar_t nw = (ix_se - ix) * (iy_se - iy);
+  const scalar_t ne = (ix - ix_sw) * (iy_sw - iy);
+  const scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
+  const scalar_t se = (ix - ix_nw) * (iy - iy_nw);
+
+  // Compute the sum.
+  const scalar_t weight = weights[b][hd][q][d];
+  if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
+    sum += images[b][c][iy_nw][ix_nw] * nw * weight;
+  }
+  if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
+    sum += images[b][c][iy_ne][ix_ne] * ne * weight;
+  }
+  if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
+    sum += images[b][c][iy_sw][ix_sw] * sw * weight;
+  }
+  if (within_bounds_2d(iy_se, ix_se, H, W)) {
+    sum += images[b][c][iy_se][ix_se] * se * weight;
+  }
+
+  return sum;
+}
+
+template <typename scalar_t, typename index_t>
 __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
     const index_t num_threads,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> images,
@@ -42,44 +94,9 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
     const index_t d = (index / C) % D;
     const index_t c = index % C;
 
-    scalar_t sum = 0;
+    const scalar_t sample = draw_sample(images, samples, weights, H, W, b, hd, q, d, c);
 
-    // Get image coordinates in pixel space.
-    const scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
-    const scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
-
-    // Get corner pixel indices (referenced using compass directions).
-    const index_t ix_nw = static_cast<index_t>(::floor(ix));
-    const index_t iy_nw = static_cast<index_t>(::floor(iy));
-    const index_t ix_ne = ix_nw + 1;
-    const index_t iy_ne = iy_nw;
-    const index_t ix_sw = ix_nw;
-    const index_t iy_sw = iy_nw + 1;
-    const index_t ix_se = ix_nw + 1;
-    const index_t iy_se = iy_nw + 1;
-
-    // Compute interpolation weights.
-    const scalar_t nw = (ix_se - ix) * (iy_se - iy);
-    const scalar_t ne = (ix - ix_sw) * (iy_sw - iy);
-    const scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
-    const scalar_t se = (ix - ix_nw) * (iy - iy_nw);
-
-    // Compute the sum.
-    const scalar_t weight = weights[b][hd][q][d];
-    if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
-      sum += images[b][c][iy_nw][ix_nw] * nw * weight;
-    }
-    if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
-      sum += images[b][c][iy_ne][ix_ne] * ne * weight;
-    }
-    if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
-      sum += images[b][c][iy_sw][ix_sw] * sw * weight;
-    }
-    if (within_bounds_2d(iy_se, ix_se, H, W)) {
-      sum += images[b][c][iy_se][ix_se] * se * weight;
-    }
-
-    atomicAdd(&outputs[b][hd][q][c], sum);
+    atomicAdd(&outputs[b][hd][q][c], sample);
   }
 }
 
