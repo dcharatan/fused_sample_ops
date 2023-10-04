@@ -23,16 +23,12 @@ template <typename scalar_t, typename index_t>
 __device__ scalar_t draw_sample(
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> &images,
     const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> &samples,
-    const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> &weights,
     const index_t H,
     const index_t W,
     const index_t b,
-    const index_t hd,
     const index_t q,
     const index_t d,
     const index_t c) {
-  scalar_t sum = 0;
-
   // Get image coordinates in pixel space.
   const scalar_t ix = grid_sampler_compute_source_index(samples[b][q][d][0], W);
   const scalar_t iy = grid_sampler_compute_source_index(samples[b][q][d][1], H);
@@ -53,21 +49,20 @@ __device__ scalar_t draw_sample(
   const scalar_t sw = (ix_ne - ix) * (iy - iy_ne);
   const scalar_t se = (ix - ix_nw) * (iy - iy_nw);
 
-  // Compute the sum.
-  const scalar_t weight = weights[b][hd][q][d];
+  // Update the samples.
+  scalar_t sum = 0;
   if (within_bounds_2d(iy_nw, ix_nw, H, W)) {
-    sum += images[b][c][iy_nw][ix_nw] * nw * weight;
+    sum += images[b][c][iy_nw][ix_nw] * nw;
   }
   if (within_bounds_2d(iy_ne, ix_ne, H, W)) {
-    sum += images[b][c][iy_ne][ix_ne] * ne * weight;
+    sum += images[b][c][iy_ne][ix_ne] * ne;
   }
   if (within_bounds_2d(iy_sw, ix_sw, H, W)) {
-    sum += images[b][c][iy_sw][ix_sw] * sw * weight;
+    sum += images[b][c][iy_sw][ix_sw] * sw;
   }
   if (within_bounds_2d(iy_se, ix_se, H, W)) {
-    sum += images[b][c][iy_se][ix_se] * se * weight;
+    sum += images[b][c][iy_se][ix_se] * se;
   }
-
   return sum;
 }
 
@@ -88,15 +83,17 @@ __launch_bounds__(256) __global__ void sample_sum_forward_kernel(
   const index_t D = weights.size(3);
 
   CUDA_KERNEL_LOOP_TYPE(index, num_threads, index_t) {
-    const index_t b = index / (HD * Q * C * D);
-    const index_t hd = (index / (Q * C * D)) % HD;
-    const index_t q = (index / (C * D)) % Q;
-    const index_t d = (index / C) % D;
-    const index_t c = index % C;
+    const index_t b = index / (Q * D);
+    const index_t q = (index / D) % Q;
+    const index_t d = index % D;
 
-    const scalar_t sample = draw_sample(images, samples, weights, H, W, b, hd, q, d, c);
-
-    atomicAdd(&outputs[b][hd][q][c], sample);
+    for (index_t c = 0; c < C; c++) {
+      const scalar_t sample = draw_sample(images, samples, H, W, b, q, d, c);
+      for (index_t hd = 0; hd < HD; hd++) {
+        const scalar_t weight = weights[b][hd][q][d];
+        atomicAdd(&outputs[b][hd][q][c], sample * weight);
+      }
+    }
   }
 }
 
